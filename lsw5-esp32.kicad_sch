@@ -9549,7 +9549,7 @@
 				)
 			)
 		)
-		(property "Value" "RDY"
+		(property "Value" "COM"
 			(at 90.932 90.17 0)
 			(effects
 				(font
@@ -10159,7 +10159,7 @@
 				)
 			)
 		)
-		(property "Value" "COM"
+		(property "Value" "RDY"
 			(at 90.932 83.82 0)
 			(effects
 				(font

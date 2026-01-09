@@ -1838,7 +1838,7 @@
 				)
 			)
 		)
-		(property "Value" "RDY"
+		(property "Value" "COM"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(uuid "307c1e4a-2927-4b06-b29d-e1c749635650")
@@ -4066,7 +4066,7 @@
 				)
 			)
 		)
-		(property "Value" "COM"
+		(property "Value" "RDY"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(uuid "b25c341c-ca40-4c3e-89c5-e35efff2a8d5")
