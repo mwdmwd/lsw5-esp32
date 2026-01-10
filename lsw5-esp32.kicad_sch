@@ -7038,16 +7038,6 @@
 		)
 		(uuid "fbaa2cbb-2306-4db9-937f-d0e8b2eef163")
 	)
-	(label "Net-(D4-K)"
-		(at 92.71 88.9 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "050e56fd-e740-4633-babf-d5528905bb29")
-	)
 	(label "USB_DP"
 		(at 152.4 147.32 0)
 		(effects
@@ -7078,36 +7068,6 @@
 		)
 		(uuid "199f9009-a622-44ef-bc90-0dc85dcb142a")
 	)
-	(label "unconnected-(J2-Pin_5-Pad5)"
-		(at 218.44 58.42 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "28eee852-c500-44f6-bc9f-3f49dbcefc8b")
-	)
-	(label "Net-(J4-Pin_2)"
-		(at 132.08 96.52 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "351a5d3f-1f42-49c7-b296-b4c54b258595")
-	)
-	(label "unconnected-(J1-Pin_3-Pad3)"
-		(at 180.34 53.34 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "394bc28f-da4a-4e4e-8fed-221bf740439f")
-	)
 	(label "USB_DP"
 		(at 106.68 144.78 180)
 		(effects
@@ -7127,16 +7087,6 @@
 			(justify right bottom)
 		)
 		(uuid "45825208-d66a-41bb-9b92-675b60d0033f")
-	)
-	(label "Net-(U3-VO)"
-		(at 223.52 109.22 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "4eb5f3d6-864c-4ec6-9057-a558ee80c5a2")
 	)
 	(label "+3V3_IN"
 		(at 201.93 43.18 0)
@@ -7158,16 +7108,6 @@
 		)
 		(uuid "5bf9e815-c1af-4006-8936-0b927fde1d60")
 	)
-	(label "Net-(J4-Pin_1)"
-		(at 132.08 91.44 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "5e7228f3-3d8a-47c6-9000-4a1634171014")
-	)
 	(label "SW_MB"
 		(at 232.41 55.88 0)
 		(effects
@@ -7178,16 +7118,6 @@
 		)
 		(uuid "62c3d162-8de1-40f5-8de7-0df498205863")
 	)
-	(label "Net-(D4-A)"
-		(at 80.01 88.9 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "6afcb53c-58a8-4be2-a7e9-ee1925f4e4e4")
-	)
 	(label "PRG_RX"
 		(at 40.64 53.34 180)
 		(effects
@@ -7197,46 +7127,6 @@
 			(justify right bottom)
 		)
 		(uuid "70fcd2b3-9c9a-4826-ae00-b23f7501b411")
-	)
-	(label "Net-(D2-A)"
-		(at 80.01 76.2 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "711ed653-299b-4577-bed0-bc3b686be7ce")
-	)
-	(label "Net-(U3-VO)"
-		(at 223.52 109.22 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "72332c30-fc1b-4da0-8e51-03f547b734d8")
-	)
-	(label "Net-(U3-VO)"
-		(at 223.52 109.22 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "734a8a35-f0c4-452d-94d9-d35ca69dc299")
-	)
-	(label "Net-(D2-K)"
-		(at 87.63 76.2 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "7a1a14f9-8309-4780-b7d6-6d984bc9a783")
 	)
 	(label "RX"
 		(at 196.85 58.42 0)
@@ -7258,16 +7148,6 @@
 		)
 		(uuid "82b00281-edbf-4bf6-a6f7-7e93fc41a2f5")
 	)
-	(label "unconnected-(J1-Pin_2-Pad2)"
-		(at 193.04 50.8 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "88c68b22-e34e-4a07-8ff9-77a2149b8dd3")
-	)
 	(label "RX"
 		(at 78.74 53.34 0)
 		(effects
@@ -7287,16 +7167,6 @@
 			(justify right bottom)
 		)
 		(uuid "8ae7c6d8-a9b3-402c-95b3-3c13ac4a6106")
-	)
-	(label "Net-(J4-Pin_1)"
-		(at 132.08 91.44 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "8d16e4e2-cd94-48dc-ab5d-ddf8c61d4c08")
 	)
 	(label "SIM1"
 		(at 177.8 50.8 180)
@@ -7318,26 +7188,6 @@
 		)
 		(uuid "94bf2d13-856e-446d-81f9-c3052c266249")
 	)
-	(label "Net-(D4-A)"
-		(at 80.01 88.9 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "98528db0-94a7-4aaa-923b-2a447b45520b")
-	)
-	(label "Net-(D4-K)"
-		(at 92.71 88.9 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "9daba2fc-7de7-4f89-a1a3-c36440cfb253")
-	)
 	(label "PRG_RX"
 		(at 30.48 113.03 0)
 		(effects
@@ -7348,16 +7198,6 @@
 		)
 		(uuid "9e0df498-2056-46b8-a31f-6629378e48bb")
 	)
-	(label "Net-(J4-Pin_2)"
-		(at 132.08 96.52 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "afa47687-e21c-46d3-8939-06ab0812f9e8")
-	)
 	(label "PRG_TX"
 		(at 30.48 110.49 0)
 		(effects
@@ -7367,26 +7207,6 @@
 			(justify left bottom)
 		)
 		(uuid "b73edd90-bdcd-45ab-954f-bf3e7f416aed")
-	)
-	(label "Net-(J4-Pin_1)"
-		(at 132.08 91.44 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "c8f339f8-934d-455b-bf11-d19630dc47bc")
-	)
-	(label "Net-(D2-A)"
-		(at 80.01 76.2 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "cef7300b-eca8-4a3d-8edb-402b9ca9fd3e")
 	)
 	(label "USB_DM"
 		(at 78.74 60.96 0)
@@ -7427,36 +7247,6 @@
 			(justify right bottom)
 		)
 		(uuid "ef17d961-f1c9-4121-8853-1469017d7820")
-	)
-	(label "unconnected-(J2-Pin_6-Pad6)"
-		(at 231.14 58.42 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "f1a24c28-76b1-4fe4-8ae9-79cf110268ab")
-	)
-	(label "Net-(D2-K)"
-		(at 87.63 76.2 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "f835d651-b22c-4081-829c-1521d0f902b5")
-	)
-	(label "Net-(J4-Pin_2)"
-		(at 132.08 96.52 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "ff207b8a-cf29-4b10-a26c-74f40719ffd8")
 	)
 	(symbol
 		(lib_id "Connector:Conn_01x06_Pin")
