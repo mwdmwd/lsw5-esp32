@@ -7,6 +7,10 @@
 		(legacy_teardrops no)
 	)
 	(paper "A4")
+	(title_block
+		(title "LSW5-ESP32")
+		(rev "p1")
+	)
 	(layers
 		(0 "F.Cu" signal)
 		(2 "B.Cu" signal)
@@ -13868,7 +13872,7 @@
 		)
 		(uuid "c1f7cf07-65ab-46d2-9025-13dee835b3ca")
 	)
-	(gr_text "p1"
+	(gr_text "${REVISION}"
 		(at 6.5 26 0)
 		(layer "F.SilkS")
 		(uuid "29a7ef22-648b-462d-a3fa-c31db8dab867")
@@ -13972,7 +13976,7 @@
 			(justify left bottom)
 		)
 	)
-	(gr_text "LSW5-ESP32"
+	(gr_text "${TITLE}"
 		(at 5.201088 24.499999 0)
 		(layer "F.SilkS")
 		(uuid "fce2a5ae-101b-4f21-874c-2ddf3794c942")

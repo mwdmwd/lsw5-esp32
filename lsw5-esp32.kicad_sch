@@ -4,6 +4,10 @@
 	(generator_version "9.0")
 	(uuid "e9c69beb-c190-4231-ad3e-5deecf8ebc47")
 	(paper "A4")
+	(title_block
+		(title "LSW5-ESP32")
+		(rev "p1")
+	)
 	(lib_symbols
 		(symbol "1N5819HW-7-F:1N5819HW-7-F"
 			(pin_names
