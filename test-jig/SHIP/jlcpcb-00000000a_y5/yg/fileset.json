@@ -1,0 +1,60 @@
+{
+   "file_counts" : 11,
+   "file_list" : [
+      {
+         "file_describe_code" : 0,
+         "file_name" : "lsw5-esp32-test-jig-B_Cu.gbl",
+         "layer_name" : "bl"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "lsw5-esp32-test-jig-B_Mask.gbs",
+         "layer_name" : "bs"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "lsw5-esp32-test-jig-B_Paste.gbp",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 4,
+         "file_name" : "lsw5-esp32-test-jig-B_Silkscreen.gbo",
+         "layer_name" : "nil"
+      },
+      {
+         "file_describe_code" : 2,
+         "file_name" : "lsw5-esp32-test-jig-Edge_Cuts.gm1",
+         "layer_name" : "gko"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "lsw5-esp32-test-jig-F_Cu.gtl",
+         "layer_name" : "tl"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "lsw5-esp32-test-jig-F_Mask.gts",
+         "layer_name" : "ts"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "lsw5-esp32-test-jig-F_Paste.gtp",
+         "layer_name" : "tp"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "lsw5-esp32-test-jig-F_Silkscreen.gto",
+         "layer_name" : "to"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "lsw5-esp32-test-jig-NPTH.drl",
+         "layer_name" : "npth"
+      },
+      {
+         "file_describe_code" : 0,
+         "file_name" : "lsw5-esp32-test-jig-PTH.drl",
+         "layer_name" : "drl"
+      }
+   ]
+}
