@@ -3,4 +3,6 @@
   (lib (name "ESP32-S3-WROOM-1U")(type "KiCad")(uri "${KIPRJMOD}/libs/ESP32-S3-WROOM-1U")(options "")(descr ""))
   (lib (name "USB4105_GF_A")(type "KiCad")(uri "${KIPRJMOD}/libs/USB4105_GF_A")(options "")(descr ""))
   (lib (name "1N5819HW-7-F")(type "KiCad")(uri "${KIPRJMOD}/libs/1N5819HW-7-F")(options "")(descr ""))
+  (lib (name "ISO1410DWR")(type "KiCad")(uri "${KIPRJMOD}/libs/ISO1410DWR")(options "")(descr ""))
+  (lib (name "custom-power")(type "KiCad")(uri "${KIPRJMOD}/libs/custom-power")(options "")(descr ""))
 )

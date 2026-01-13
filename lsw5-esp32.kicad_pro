@@ -48,7 +48,7 @@
         "silk_text_thickness": 0.1,
         "silk_text_upright": false,
         "zones": {
-          "min_clearance": 0.5
+          "min_clearance": 0.4
         }
       },
       "diff_pair_dimensions": [
@@ -64,7 +64,7 @@
           ""
         ],
         [
-          "mirrored_text_on_front_layer|22758416|48193496|8fd5b4bd-11ae-4e89-9503-44a97a1f4847|00000000-0000-0000-0000-000000000000",
+          "mirrored_text_on_front_layer|22500000|48193496|8fd5b4bd-11ae-4e89-9503-44a97a1f4847|00000000-0000-0000-0000-000000000000",
           ""
         ],
         [
@@ -100,19 +100,15 @@
           ""
         ],
         [
-          "silk_edge_clearance|40000|42120000|61c1a206-d666-4f52-a9e2-6ff3780f0ab7|48743739-f0a4-444c-9a6f-fc99f4311aab",
-          ""
-        ],
-        [
-          "silk_edge_clearance|40000|42120000|61c1a206-d666-4f52-a9e2-6ff3780f0ab7|ec4c3938-abd4-49ac-beef-dc0af7de2b7b",
-          ""
-        ],
-        [
-          "silk_edge_clearance|40000|44880000|61c1a206-d666-4f52-a9e2-6ff3780f0ab7|9e29845e-e165-4fd7-8ce3-ec822c9c2a33",
-          ""
-        ],
-        [
           "silk_overlap|27890000|20120000|345d4c82-a3f6-452f-9d49-6b9833f1378f|db3eddbe-6cb3-47c4-9a64-d7b52b483ff7",
+          ""
+        ],
+        [
+          "starved_thermal|12775000|31037500|f523bcb7-cde5-4588-a243-441102650362|a381daef-7357-478b-9590-97aa4355d37c|F.Cu",
+          ""
+        ],
+        [
+          "starved_thermal|12775000|40317500|02a6b59a-2842-4535-9dd3-c9d2bccfefa7|f6949309-5238-4367-9db7-79d33c85fe41|F.Cu",
           ""
         ]
       ],
@@ -296,7 +292,12 @@
     "equivalence_files": []
   },
   "erc": {
-    "erc_exclusions": [],
+    "erc_exclusions": [
+      [
+        "lib_symbol_mismatch|1917700|1422400|a8e892f4-2428-4f30-a535-2e772ba87de3|00000000-0000-0000-0000-000000000000|||",
+        ""
+      ]
+    ],
     "meta": {
       "version": 0
     },
@@ -571,7 +572,7 @@
       },
       {
         "netclass": "Power",
-        "pattern": "GND"
+        "pattern": "/?GND(_.*)?"
       }
     ]
   },
