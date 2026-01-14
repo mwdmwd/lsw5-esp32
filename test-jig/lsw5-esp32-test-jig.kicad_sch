@@ -6595,7 +6595,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "SW_Push"
+		(property "Value" "DUT"
 			(at 102.87 68.5799 90)
 			(effects
 				(font
@@ -7326,7 +7326,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "SW_Push"
+		(property "Value" "USB"
 			(at 194.3099 77.47 90)
 			(effects
 				(font
