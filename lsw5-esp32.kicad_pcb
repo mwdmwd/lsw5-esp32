@@ -1494,6 +1494,17 @@
 			(uuid "d2afa0bb-8f27-427a-8fab-c091487888af")
 		)
 		(embedded_fonts no)
+		(model "${KIPRJMOD}/libs/ESP32-S3-WROOM-1U/ESP32-S3-WROOM-1U-N16R8--3DModel-STEP-56544.step"
+			(offset
+				(xyz 0 0 0)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz -90 -0 -0)
+			)
+		)
 	)
 	(footprint "Connector_PinHeader_2.00mm:PinHeader_2x05_P2.00mm_Vertical"
 		(locked yes)
@@ -2836,6 +2847,17 @@
 			(uuid "f6d83c30-cfe0-42f7-9be2-a6cbf524f8a3")
 		)
 		(embedded_fonts no)
+		(model "${KIPRJMOD}/libs/USB4105_GF_A/USB4105-GF-A--3DModel-STEP-510211.STEP"
+			(offset
+				(xyz 0 0 0)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz -90 -0 -0)
+			)
+		)
 	)
 	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "F.Cu")
@@ -8077,6 +8099,17 @@
 			(uuid "fdf425cc-c257-47e4-8e0a-066d7a092d69")
 		)
 		(embedded_fonts no)
+		(model "${KICAD9_3DMODEL_DIR}/Diode_SMD.3dshapes/D_SOD-123.step"
+			(offset
+				(xyz 0 0 0)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz 0 0 0)
+			)
+		)
 	)
 	(footprint "ISO1410DWR:SOIC127P1030X265-16N"
 		(layer "F.Cu")
@@ -8626,6 +8659,17 @@
 			(uuid "ab4a2ead-0c35-4223-846d-f62de64fcb5a")
 		)
 		(embedded_fonts no)
+		(model "${KIPRJMOD}/libs/ISO1410DWR/ISO1410DWR.step"
+			(offset
+				(xyz 0 0 0)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz -90 -0 -0)
+			)
+		)
 	)
 	(footprint "Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder"
 		(layer "B.Cu")
