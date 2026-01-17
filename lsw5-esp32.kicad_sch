@@ -6,7 +6,7 @@
 	(paper "A4")
 	(title_block
 		(title "LSW5-ESP32")
-		(rev "p1")
+		(rev "p2")
 	)
 	(lib_symbols
 		(symbol "1N5819HW-7-F:1N5819HW-7-F"
@@ -10110,7 +10110,7 @@
 				)
 			)
 		)
-		(property "Value" "NET"
+		(property "Value" "COM"
 			(at 90.932 77.47 0)
 			(effects
 				(font
@@ -11497,7 +11497,7 @@
 				)
 			)
 		)
-		(property "Value" "COM"
+		(property "Value" "NET"
 			(at 90.932 90.17 0)
 			(effects
 				(font

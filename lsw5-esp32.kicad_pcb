@@ -9,7 +9,7 @@
 	(paper "A4")
 	(title_block
 		(title "LSW5-ESP32")
-		(rev "p1")
+		(rev "p2")
 	)
 	(layers
 		(0 "F.Cu" signal)
@@ -1524,7 +1524,7 @@
 				)
 			)
 		)
-		(property "Value" "COM"
+		(property "Value" "NET"
 			(at 0 -1.492775 0)
 			(layer "F.SilkS")
 			(uuid "307c1e4a-2927-4b06-b29d-e1c749635650")
@@ -1730,7 +1730,7 @@
 				)
 			)
 		)
-		(property "Value" "NET"
+		(property "Value" "COM"
 			(at 0 -1.492775 0)
 			(layer "F.SilkS")
 			(uuid "9c530258-9b77-48be-91be-1c9ca513ba21")
