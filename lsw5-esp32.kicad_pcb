@@ -4714,7 +4714,7 @@
 				)
 			)
 		)
-		(property "Value" "10"
+		(property "Value" "0"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(uuid "5fb9041a-1c4f-4666-831d-468df2a03196")
@@ -7002,7 +7002,7 @@
 				)
 			)
 		)
-		(property "Value" "10"
+		(property "Value" "0"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(uuid "9e810e6a-23e6-4d03-8863-5812924f276a")
