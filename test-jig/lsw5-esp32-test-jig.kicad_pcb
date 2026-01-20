@@ -3179,7 +3179,7 @@
 				)
 			)
 		)
-		(property "Value" "1μ"
+		(property "Value" "470n"
 			(at 0 1.43 90)
 			(layer "F.Fab")
 			(uuid "bb509d5d-1a6c-46e2-ad88-8fac3f5e04fa")
