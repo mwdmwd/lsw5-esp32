@@ -4352,7 +4352,7 @@
 		(uuid "1da97ae9-52aa-463a-8332-82e2e7c2fe02")
 	)
 	(label "USB_DN"
-		(at 123.19 116.84 0)
+		(at 123.19 119.38 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4422,7 +4422,7 @@
 		(uuid "ad68a979-f54a-4bfa-901a-baf018da21cb")
 	)
 	(label "USB_DP"
-		(at 123.19 119.38 0)
+		(at 123.19 116.84 0)
 		(effects
 			(font
 				(size 1.27 1.27)
