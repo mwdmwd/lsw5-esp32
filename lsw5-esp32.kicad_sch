@@ -6821,16 +6821,6 @@
 	)
 	(wire
 		(pts
-			(xy 80.01 88.9) (xy 80.01 83.82)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "33c9aac0-fc47-4e07-9181-d914aea53815")
-	)
-	(wire
-		(pts
 			(xy 78.74 124.46) (xy 78.74 130.81)
 		)
 		(stroke
@@ -6958,16 +6948,6 @@
 			(type default)
 		)
 		(uuid "4acba752-4a94-494d-8637-1c10e88e8ff7")
-	)
-	(wire
-		(pts
-			(xy 80.01 83.82) (xy 77.47 83.82)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "4c0c8e59-3989-43f1-ae5f-b9bbc9a2f773")
 	)
 	(wire
 		(pts
@@ -7141,16 +7121,6 @@
 	)
 	(wire
 		(pts
-			(xy 77.47 80.01) (xy 80.01 80.01)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "5d9b371b-ccfc-4955-a973-0661ca3ebf54")
-	)
-	(wire
-		(pts
 			(xy 17.78 68.58) (xy 22.86 68.58)
 		)
 		(stroke
@@ -7211,7 +7181,7 @@
 	)
 	(wire
 		(pts
-			(xy 87.63 76.2) (xy 92.71 76.2)
+			(xy 90.17 76.2) (xy 92.71 76.2)
 		)
 		(stroke
 			(width 0)
@@ -7301,7 +7271,7 @@
 	)
 	(wire
 		(pts
-			(xy 80.01 80.01) (xy 80.01 82.55)
+			(xy 80.01 78.74) (xy 80.01 82.55)
 		)
 		(stroke
 			(width 0)
@@ -7491,7 +7461,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 76.2) (xy 80.01 76.2)
+			(xy 74.93 76.2) (xy 82.55 76.2)
 		)
 		(stroke
 			(width 0)
@@ -7501,7 +7471,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 78.74) (xy 77.47 78.74)
+			(xy 74.93 78.74) (xy 80.01 78.74)
 		)
 		(stroke
 			(width 0)
@@ -7701,6 +7671,16 @@
 	)
 	(wire
 		(pts
+			(xy 80.01 82.55) (xy 82.55 82.55)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "95553e76-06f8-460a-8757-a5bda7a98998")
+	)
+	(wire
+		(pts
 			(xy 168.91 139.7) (xy 173.99 139.7)
 		)
 		(stroke
@@ -7798,6 +7778,16 @@
 			(type default)
 		)
 		(uuid "9ce6b3db-5775-4bf7-9153-fe8b46a0aa0e")
+	)
+	(wire
+		(pts
+			(xy 77.47 88.9) (xy 82.55 88.9)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9e315f20-3534-4159-8d2a-76118dca8a98")
 	)
 	(wire
 		(pts
@@ -8001,16 +7991,6 @@
 	)
 	(wire
 		(pts
-			(xy 77.47 80.01) (xy 77.47 78.74)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "c9a0040c-c4df-48db-8614-c01a8d411694")
-	)
-	(wire
-		(pts
 			(xy 30.48 60.96) (xy 40.64 60.96)
 		)
 		(stroke
@@ -8131,7 +8111,7 @@
 	)
 	(wire
 		(pts
-			(xy 87.63 82.55) (xy 92.71 82.55)
+			(xy 90.17 82.55) (xy 92.71 82.55)
 		)
 		(stroke
 			(width 0)
@@ -8141,7 +8121,7 @@
 	)
 	(wire
 		(pts
-			(xy 77.47 83.82) (xy 77.47 81.28)
+			(xy 77.47 81.28) (xy 77.47 88.9)
 		)
 		(stroke
 			(width 0)
@@ -8421,7 +8401,7 @@
 	)
 	(wire
 		(pts
-			(xy 87.63 88.9) (xy 92.71 88.9)
+			(xy 90.17 88.9) (xy 92.71 88.9)
 		)
 		(stroke
 			(width 0)
@@ -10095,7 +10075,8 @@
 	)
 	(symbol
 		(lib_id "Device:LED")
-		(at 83.82 76.2 180)
+		(at 86.36 76.2 0)
+		(mirror x)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -10119,7 +10100,7 @@
 			)
 		)
 		(property "Footprint" "LED_SMD:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder"
-			(at 83.82 76.2 0)
+			(at 86.36 76.2 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -10128,7 +10109,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 83.82 76.2 0)
+			(at 86.36 76.2 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -10137,7 +10118,7 @@
 			)
 		)
 		(property "Description" "Light emitting diode"
-			(at 83.82 76.2 0)
+			(at 86.36 76.2 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -10146,7 +10127,7 @@
 			)
 		)
 		(property "Sim.Pins" "1=K 2=A"
-			(at 83.82 76.2 0)
+			(at 86.36 76.2 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11482,7 +11463,8 @@
 	)
 	(symbol
 		(lib_id "Device:LED")
-		(at 83.82 88.9 180)
+		(at 86.36 88.9 0)
+		(mirror x)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -11490,7 +11472,7 @@
 		(dnp no)
 		(uuid "73794e60-b913-4512-be58-7f3b0056f212")
 		(property "Reference" "D2"
-			(at 90.932 87.63 0)
+			(at 91.186 87.63 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11498,7 +11480,7 @@
 			)
 		)
 		(property "Value" "NET"
-			(at 90.932 90.17 0)
+			(at 91.186 90.17 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11506,7 +11488,7 @@
 			)
 		)
 		(property "Footprint" "LED_SMD:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder"
-			(at 83.82 88.9 0)
+			(at 86.36 88.9 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11515,7 +11497,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 83.82 88.9 0)
+			(at 86.36 88.9 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11524,7 +11506,7 @@
 			)
 		)
 		(property "Description" "Light emitting diode"
-			(at 83.82 88.9 0)
+			(at 86.36 88.9 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11533,7 +11515,7 @@
 			)
 		)
 		(property "Sim.Pins" "1=K 2=A"
-			(at 83.82 88.9 0)
+			(at 86.36 88.9 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -12434,7 +12416,8 @@
 	)
 	(symbol
 		(lib_id "Device:LED")
-		(at 83.82 82.55 180)
+		(at 86.36 82.55 0)
+		(mirror x)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -12458,7 +12441,7 @@
 			)
 		)
 		(property "Footprint" "LED_SMD:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder"
-			(at 83.82 82.55 0)
+			(at 86.36 82.55 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -12467,7 +12450,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 83.82 82.55 0)
+			(at 86.36 82.55 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -12476,7 +12459,7 @@
 			)
 		)
 		(property "Description" "Light emitting diode"
-			(at 83.82 82.55 0)
+			(at 86.36 82.55 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -12485,7 +12468,7 @@
 			)
 		)
 		(property "Sim.Pins" "1=K 2=A"
-			(at 83.82 82.55 0)
+			(at 86.36 82.55 0)
 			(effects
 				(font
 					(size 1.27 1.27)
