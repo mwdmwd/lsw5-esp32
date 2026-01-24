@@ -19,3 +19,5 @@ fp-info-cache
 *.svg
 *.png
 *.jpg
+
+__pycache__/
