@@ -18,8 +18,9 @@
 # ----------------------------------------------------------------------------
 
 substitutions:
-  name: deye
+  name: inverter
   friendly_name: Deye
+  modbus_controller_id: inverter_modbus_controller
 
 esphome:
   name: ${name}
@@ -60,8 +61,10 @@ psram:
 # Enable logging
 logger:
   logs:
-    modbus: INFO
     modbus_controller: INFO
+    modbus_controller.sensor: INFO
+    modbus: INFO
+    sensor: INFO
 
 # Enable Home Assistant API
 api:
@@ -76,6 +79,7 @@ ota:
 wifi:
   ssid: !secret wifi.ssid
   password: !secret wifi.password
+  fast_connect: true
   domain: .lan
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
@@ -91,6 +95,7 @@ captive_portal:
 mqtt:
   broker: 192.168.1.10
   discovery: false
+  reboot_timeout: 1min
   birth_message:
     topic: ${name}/availability
     payload: online
@@ -184,6 +189,12 @@ modbus_controller:
         read_lambda: !lambda ESP_LOGD("modbus", "Read unkreg"); return 0;
         write_lambda: !lambda ESP_LOGD("modbus", "Write unkreg value %f", x); return true;
 
+text_sensor:
+  - id: fast_power # not yet used but the goal would be to refresh this at 8 Hz instead of ⅕ Hz
+    platform: mqtt_subscribe
+    topic: elec/fast_power
+    internal: false
+
 sensor:
   - id: meter_grid_power_ph1
     platform: mqtt_subscribe
@@ -225,22 +236,11 @@ sensor:
 
   # Start esphome-deye-inverter
 
-  - platform: modbus_controller
-    modbus_controller_id: inverter_modbus_controller
-    name: "Grid Frequency"
-    register_type: holding
-    address: 609
-    unit_of_measurement: "Hz"
-    device_class: frequency
-    accuracy_decimals: 2
-    filters:
-      - multiply: 0.01
-    value_type: U_WORD
-    icon: "mdi:sine-wave"
-    state_topic: deye/grid_frequency
+  # Basic sensors (old MQTT)
 
+  # Grid voltage
   - platform: modbus_controller
-    modbus_controller_id: inverter_modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
     name: "Grid L1 Voltage"
     id: grid_voltage_l1
     register_type: holding
@@ -252,9 +252,10 @@ sensor:
       - multiply: 0.1
     value_type: U_WORD
     icon: "mdi:sine-wave"
+    state_topic: ${name}/grid_ph1_voltage
 
   - platform: modbus_controller
-    modbus_controller_id: inverter_modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
     name: "Grid L2 Voltage"
     id: grid_voltage_l2
     register_type: holding
@@ -266,9 +267,10 @@ sensor:
       - multiply: 0.1
     value_type: U_WORD
     icon: "mdi:sine-wave"
+    state_topic: ${name}/grid_ph2_voltage
 
   - platform: modbus_controller
-    modbus_controller_id: inverter_modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
     name: "Grid L3 Voltage"
     id: grid_voltage_l3
     register_type: holding
@@ -279,3 +281,322 @@ sensor:
     filters:
       - multiply: 0.1
     value_type: U_WORD
+    icon: "mdi:sine-wave"
+    state_topic: ${name}/grid_ph3_voltage
+
+  # Grid current
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Internal CT L1 Current"
+    id: internal_ct_l1_current
+    register_type: holding
+    address: 610 # TODO 630?
+    unit_of_measurement: "A"
+    device_class: current
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+    value_type: S_WORD
+    icon: "mdi:transmission-tower"
+    state_topic: ${name}/grid_ph1_current
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Internal CT L2 Current"
+    id: internal_ct_l2_current
+    register_type: holding
+    address: 611 # TODO 631?
+    unit_of_measurement: "A"
+    device_class: current
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+    value_type: S_WORD
+    icon: "mdi:transmission-tower"
+    state_topic: ${name}/grid_ph2_current
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Internal CT L3 Current"
+    id: internal_ct_l3_current
+    register_type: holding
+    address: 612 # TODO 632?
+    unit_of_measurement: "A"
+    device_class: current
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+    value_type: S_WORD
+    icon: "mdi:transmission-tower"
+    state_topic: ${name}/grid_ph3_current
+
+  # Grid frequency
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Grid Frequency"
+    register_type: holding
+    address: 609
+    unit_of_measurement: "Hz"
+    device_class: frequency
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+    value_type: U_WORD
+    icon: "mdi:sine-wave"
+    state_topic: ${name}/grid_ph1_frequency
+
+  # PV voltage
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "PV1 Voltage"
+    register_type: holding
+    address: 676
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+    value_type: U_WORD
+    icon: "mdi:solar-power-variant"
+    state_topic: ${name}/pv1_voltage
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "PV2 Voltage"
+    register_type: holding
+    address: 678
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+    value_type: U_WORD
+    icon: "mdi:solar-power-variant"
+    state_topic: ${name}/pv2_voltage
+
+  # PV current
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "PV1 Current"
+    register_type: holding
+    address: 677
+    unit_of_measurement: "A"
+    device_class: current
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+    value_type: U_WORD
+    icon: "mdi:solar-power-variant"
+    state_topic: ${name}/pv1_current
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "PV2 Current"
+    register_type: holding
+    address: 679
+    unit_of_measurement: "A"
+    device_class: current
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+    value_type: U_WORD
+    icon: "mdi:solar-power-variant"
+    state_topic: ${name}/pv2_current
+
+  # Generation power
+  - platform: template
+    name: "PV Power"
+    unit_of_measurement: "W"
+    id: pv_power
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    update_interval: 5s
+    icon: "mdi:solar-power-variant"
+    lambda: |-
+      auto pv1 = id(pv1_power).state;
+      auto pv2 = id(pv2_power).state;
+      if(isnan(pv1) || isnan(pv2)) return {};
+      return pv1 + pv2;
+    state_topic: ${name}/generation_power
+
+  # Energy
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Total PV Production"
+    id: total_pv_production
+    register_type: holding
+    address: 534
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: "total_increasing"
+    accuracy_decimals: 1
+    value_type: U_DWORD_R
+    filters:
+      - multiply: 0.1
+      - offset: 24161.9
+    icon: "mdi:solar-power"
+    state_topic: ${name}/generated_energy
+
+  # Temperature
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "DC Temperature"
+    register_type: holding
+    address: 540
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+    disabled_by_default: true
+    value_type: S_WORD
+    filters:
+      - offset: -1000
+      - multiply: 0.1
+    icon: "mdi:thermometer"
+    state_topic: ${name}/ambient_temperature
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "AC Temperature"
+    register_type: holding
+    address: 541
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+    value_type: S_WORD
+    filters:
+      - offset: -1000
+      - multiply: 0.1
+    icon: "mdi:thermometer"
+    state_topic: ${name}/inverter_temperature
+
+  # End basic sensors (old MQTT)
+
+  # Generation power
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "PV1 Power"
+    id: pv1_power
+    register_type: holding
+    address: 672
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: U_WORD
+    icon: "mdi:solar-power-variant"
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "PV2 Power"
+    id: pv2_power
+    register_type: holding
+    address: 673
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: U_WORD
+    icon: "mdi:solar-power-variant"
+
+  # Load power
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Load L1 Power"
+    register_type: holding
+    address: 650
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: S_WORD
+    icon: "mdi:home-lightning-bolt"
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Load L2 Power"
+    register_type: holding
+    address: 651
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: S_WORD
+    icon: "mdi:home-lightning-bolt"
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Load L3 Power"
+    register_type: holding
+    address: 652
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: S_WORD
+    icon: "mdi:home-lightning-bolt"
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Load Power"
+    register_type: holding
+    address: 653
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: S_WORD
+    icon: "mdi:home-lightning-bolt"
+
+  # Load UPS power
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Load UPS L1 Power"
+    register_type: holding
+    address: 640
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: S_WORD
+    icon: "mdi:home-lightning-bolt"
+    disabled_by_default: true
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Load UPS L2 Power"
+    register_type: holding
+    address: 641
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: S_WORD
+    icon: "mdi:home-lightning-bolt"
+    disabled_by_default: true
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Load UPS L3 Power"
+    register_type: holding
+    address: 642
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: S_WORD
+    icon: "mdi:home-lightning-bolt"
+    disabled_by_default: true
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Load UPS Power"
+    register_type: holding
+    address: 643
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: S_WORD
+    icon: "mdi:home-lightning-bolt"
+    disabled_by_default: true
