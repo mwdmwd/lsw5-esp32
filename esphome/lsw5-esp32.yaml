@@ -201,31 +201,26 @@ sensor:
     topic: elec/ph1/active_power
     unit_of_measurement: kW
     accuracy_decimals: 3
-    discovery: false
   - id: meter_grid_power_ph2
     platform: mqtt_subscribe
     topic: elec/ph2/active_power
     unit_of_measurement: kW
     accuracy_decimals: 3
-    discovery: false
   - id: meter_grid_power_ph3
     platform: mqtt_subscribe
     topic: elec/ph3/active_power
     unit_of_measurement: kW
     accuracy_decimals: 3
-    discovery: false
   - id: meter_grid_import_kwh
     platform: mqtt_subscribe
     topic: elec/forward_active_energy
     unit_of_measurement: kWh
     accuracy_decimals: 3
-    discovery: false
   - id: meter_grid_export_kwh
     platform: mqtt_subscribe
     topic: elec/reverse_active_energy
     unit_of_measurement: kWh
     accuracy_decimals: 3
-    discovery: false
 
   - id: free_heap
     name: Free heap
