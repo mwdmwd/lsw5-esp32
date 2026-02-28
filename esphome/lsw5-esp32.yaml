@@ -19,7 +19,7 @@
 
 substitutions:
   name: inverter
-  friendly_name: Deye
+  friendly_name: Inverter
   modbus_controller_id: inverter_modbus_controller
 
 esphome:
