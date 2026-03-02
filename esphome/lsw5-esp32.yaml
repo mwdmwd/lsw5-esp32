@@ -453,6 +453,7 @@ sensor:
     accuracy_decimals: 1
     value_type: U_DWORD_R
     filters:
+      - filter_out: 0
       - multiply: 0.1
       - offset: ${solar_production_offset_kwh}
     icon: "mdi:solar-power"
