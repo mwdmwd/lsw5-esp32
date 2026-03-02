@@ -456,9 +456,26 @@ sensor:
       - filter_out: 0
       - multiply: 0.1
       - offset: ${solar_production_offset_kwh}
+      - offset: !lambda return -id(total_generator_production).state;
     icon: "mdi:solar-power"
     state_topic: ${name}/generated_energy
     discovery: false
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Total Generator Production"
+    id: total_generator_production
+    register_type: holding
+    address: 537
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: "total_increasing"
+    accuracy_decimals: 1
+    value_type: U_DWORD_R
+    filters:
+      - multiply: 0.1
+    icon: "mdi:generator-stationary"
+    discovery: true
 
   # Temperature
   - platform: modbus_controller
