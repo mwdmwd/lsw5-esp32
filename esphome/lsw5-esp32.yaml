@@ -21,6 +21,11 @@ substitutions:
   name: inverter
   friendly_name: Inverter
   modbus_controller_id: inverter_modbus_controller
+  # ⚠️⚠️⚠️ CAUTION! UWAGA! ВНИМАНИЕ! ACHTUNG! 注意! ⚠️⚠️⚠️
+  # Personal historical-accounting offset. This makes my HA energy sensor line
+  # up with existing data from a different inverter. Set to 0.0 unless you are
+  # me or you enjoy corrupting your long-term statistics.
+  solar_production_offset_kwh: 24161.9
 
 esphome:
   name: ${name}
@@ -449,7 +454,7 @@ sensor:
     value_type: U_DWORD_R
     filters:
       - multiply: 0.1
-      - offset: 24161.9
+      - offset: ${solar_production_offset_kwh}
     icon: "mdi:solar-power"
     state_topic: ${name}/generated_energy
     discovery: false
