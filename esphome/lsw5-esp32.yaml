@@ -454,9 +454,12 @@ sensor:
     value_type: U_DWORD_R
     filters:
       - filter_out: 0
+      # - delta: 0.0  # prevent spike if Total Generator Production moves earlier
       - multiply: 0.1
       - offset: ${solar_production_offset_kwh}
       - offset: !lambda return -id(total_generator_production).state;
+      - min:
+          window_size: 3  # prevent spike on readout
     icon: "mdi:solar-power"
     state_topic: ${name}/generated_energy
     discovery: false
