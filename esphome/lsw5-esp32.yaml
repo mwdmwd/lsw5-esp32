@@ -499,6 +499,14 @@ sensor:
 
   # End basic sensors (old MQTT)
 
+  # Diagnostics
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: inverter_wifi_signal
+    icon: mdi:wifi
+    update_interval: 60s
+    entity_category: diagnostic
+
   # Generation power
   - platform: modbus_controller
     modbus_controller_id: ${modbus_controller_id}
