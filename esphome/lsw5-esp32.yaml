@@ -197,7 +197,8 @@ modbus_controller:
       - address: 286 # 0x11e
         value_type: FP32
         read_lambda: !lambda ESP_LOGD("modbus", "Read unknown register"); return 0;
-        write_lambda: !lambda ESP_LOGD("modbus", "Write unknown register: %f", x); return true;
+        write_lambda: !lambda |-
+          ESP_LOGD("modbus", "Write unknown register: %f", x); return true;
 
 text_sensor:
   - id: fast_power # not yet used but the goal would be to refresh this at 8 Hz instead of ⅕ Hz
@@ -475,7 +476,7 @@ sensor:
       - offset: ${solar_production_offset_kwh}
       - offset: !lambda return -id(total_generator_production).state;
       - min:
-          window_size: 3  # prevent spike on readout
+          window_size: 3 # prevent spike on readout
     icon: "mdi:solar-power"
     state_topic: ${name}/generated_energy
     discovery: false
