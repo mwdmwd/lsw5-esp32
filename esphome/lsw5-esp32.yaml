@@ -68,8 +68,10 @@ logger:
   logs:
     modbus_controller: INFO
     modbus_controller.sensor: INFO
+    modbus.number: INFO # why isn't it called modbus_controller.number xd
     modbus: INFO
     sensor: INFO
+    number: INFO
 
 # Enable Home Assistant API
 api:
@@ -870,3 +872,36 @@ binary_sensor:
     device_class: problem
     entity_category: diagnostic
     icon: "mdi:battery-alert-variant"
+
+number:
+  - platform: modbus_controller
+    use_write_multiple: true
+    modbus_controller_id: ${modbus_controller_id}
+    id: maximum_battery_charge_current
+    name: "Battery Charge Current Limit"
+    address: 108
+    unit_of_measurement: A
+    device_class: current
+    entity_category: config
+    value_type: U_WORD
+    min_value: 0
+    max_value: 240
+    step: 1
+    mode: box
+    icon: "mdi:battery-charging-high"
+
+  - platform: modbus_controller
+    use_write_multiple: true
+    modbus_controller_id: ${modbus_controller_id}
+    id: maximum_battery_discharge_current
+    name: "Battery Discharge Current Limit"
+    address: 109
+    unit_of_measurement: A
+    device_class: current
+    entity_category: config
+    value_type: U_WORD
+    min_value: 0
+    max_value: 240
+    step: 1
+    mode: box
+    icon: "mdi:battery-charging-low"
