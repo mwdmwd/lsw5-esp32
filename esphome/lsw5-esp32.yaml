@@ -649,6 +649,59 @@ sensor:
     disabled_by_default: true
     discovery: false
 
+  # CT Power
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Internal CT L1 Power"
+    register_type: holding
+    address: 604
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: S_WORD
+    icon: "mdi:transmission-tower"
+    discovery: false
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Internal CT L2 Power"
+    register_type: holding
+    address: 605
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: S_WORD
+    icon: "mdi:transmission-tower"
+    discovery: false
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Internal CT L3 Power"
+    register_type: holding
+    address: 606
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: S_WORD
+    icon: "mdi:transmission-tower"
+    discovery: false
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Internal CT Power" # total power output from the inverter?
+    register_type: holding
+    address: 607
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: "measurement"
+    accuracy_decimals: 0
+    value_type: S_WORD
+    icon: "mdi:transmission-tower"
+    discovery: false
+
   # Battery
   - platform: modbus_controller
     modbus_controller_id: ${modbus_controller_id}
