@@ -648,6 +648,23 @@ sensor:
     icon: "mdi:home-lightning-bolt"
     disabled_by_default: true
     discovery: false
+  
+  # Load energy
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Total Load Consumption"
+    id: total_consumption
+    register_type: holding
+    address: 527
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: "total_increasing"
+    accuracy_decimals: 1
+    value_type: U_DWORD_R
+    filters:
+      - multiply: 0.1
+    icon: "mdi:home-lightning-bolt"
+    discovery: false
 
   # CT Power
   - platform: modbus_controller
