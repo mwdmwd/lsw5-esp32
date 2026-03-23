@@ -242,7 +242,9 @@ sensor:
     platform: template
     lambda: !lambda return esp_get_free_heap_size();
     update_interval: 60s
-    unit_of_measurement: "bytes"
+    device_class: data_size
+    state_class: measurement
+    unit_of_measurement: "B"
     discovery: false
 
   # Start esphome-deye-inverter
@@ -258,6 +260,7 @@ sensor:
     address: 598
     unit_of_measurement: "V"
     device_class: voltage
+    state_class: "measurement"
     accuracy_decimals: 1
     filters:
       - multiply: 0.1
@@ -274,6 +277,7 @@ sensor:
     address: 599
     unit_of_measurement: "V"
     device_class: voltage
+    state_class: "measurement"
     accuracy_decimals: 1
     filters:
       - multiply: 0.1
@@ -290,6 +294,7 @@ sensor:
     address: 600
     unit_of_measurement: "V"
     device_class: voltage
+    state_class: "measurement"
     accuracy_decimals: 1
     filters:
       - multiply: 0.1
@@ -307,6 +312,7 @@ sensor:
     address: 610 # TODO 630?
     unit_of_measurement: "A"
     device_class: current
+    state_class: "measurement"
     accuracy_decimals: 2
     filters:
       - multiply: 0.01
@@ -323,6 +329,7 @@ sensor:
     address: 611 # TODO 631?
     unit_of_measurement: "A"
     device_class: current
+    state_class: "measurement"
     accuracy_decimals: 2
     filters:
       - multiply: 0.01
@@ -339,6 +346,7 @@ sensor:
     address: 612 # TODO 632?
     unit_of_measurement: "A"
     device_class: current
+    state_class: "measurement"
     accuracy_decimals: 2
     filters:
       - multiply: 0.01
@@ -355,6 +363,7 @@ sensor:
     address: 609
     unit_of_measurement: "Hz"
     device_class: frequency
+    state_class: "measurement"
     accuracy_decimals: 2
     filters:
       - multiply: 0.01
@@ -371,6 +380,7 @@ sensor:
     address: 676
     unit_of_measurement: "V"
     device_class: voltage
+    state_class: "measurement"
     accuracy_decimals: 1
     filters:
       - multiply: 0.1
@@ -386,6 +396,7 @@ sensor:
     address: 678
     unit_of_measurement: "V"
     device_class: voltage
+    state_class: "measurement"
     accuracy_decimals: 1
     filters:
       - multiply: 0.1
@@ -402,6 +413,7 @@ sensor:
     address: 677
     unit_of_measurement: "A"
     device_class: current
+    state_class: "measurement"
     accuracy_decimals: 1
     filters:
       - multiply: 0.1
@@ -417,6 +429,7 @@ sensor:
     address: 679
     unit_of_measurement: "A"
     device_class: current
+    state_class: "measurement"
     accuracy_decimals: 1
     filters:
       - multiply: 0.1
@@ -491,6 +504,7 @@ sensor:
     address: 541
     unit_of_measurement: "°C"
     device_class: temperature
+    state_class: "measurement"
     accuracy_decimals: 1
     value_type: S_WORD
     filters:
@@ -509,6 +523,9 @@ sensor:
     icon: mdi:wifi
     update_interval: 60s
     entity_category: diagnostic
+    device_class: signal_strength
+    state_class: "measurement"
+    unit_of_measurement: dBm
 
   # Generation power
   - platform: modbus_controller
@@ -592,7 +609,7 @@ sensor:
     icon: "mdi:home-lightning-bolt"
     discovery: false
 
-  # Load UPS power
+  # Load UPS power (?)
   - platform: modbus_controller
     modbus_controller_id: ${modbus_controller_id}
     name: "Load UPS L1 Power"
@@ -759,6 +776,7 @@ sensor:
     address: 586
     unit_of_measurement: "°C"
     device_class: temperature
+    state_class: "measurement"
     accuracy_decimals: 0
     value_type: S_WORD
     filters:
@@ -775,6 +793,7 @@ sensor:
     address: 587
     unit_of_measurement: "V"
     device_class: voltage
+    state_class: "measurement"
     accuracy_decimals: 2
     filters:
       - multiply: 0.01
@@ -789,6 +808,7 @@ sensor:
     address: 588
     unit_of_measurement: "%"
     device_class: battery
+    state_class: "measurement"
     accuracy_decimals: 0
     value_type: U_WORD
     icon: "mdi:battery"
@@ -815,6 +835,7 @@ sensor:
     address: 591
     unit_of_measurement: "A"
     device_class: current
+    state_class: "measurement"
     accuracy_decimals: 2
     filters:
       - multiply: 0.01
@@ -830,6 +851,7 @@ sensor:
     address: 210
     unit_of_measurement: "V"
     device_class: voltage
+    state_class: "measurement"
     accuracy_decimals: 2
     filters:
       - multiply: 0.01
@@ -845,6 +867,7 @@ sensor:
     address: 211
     unit_of_measurement: "V"
     device_class: voltage
+    state_class: "measurement"
     accuracy_decimals: 2
     filters:
       - multiply: 0.01
@@ -859,6 +882,7 @@ sensor:
     address: 212
     unit_of_measurement: "A"
     device_class: current
+    state_class: "measurement"
     accuracy_decimals: 0
     value_type: U_WORD
     icon: "mdi:current-dc"
@@ -871,6 +895,7 @@ sensor:
     address: 213
     unit_of_measurement: "A"
     device_class: current
+    state_class: "measurement"
     accuracy_decimals: 0
     value_type: U_WORD
     icon: "mdi:current-dc"
@@ -884,6 +909,7 @@ sensor:
     address: 215
     unit_of_measurement: "V"
     device_class: voltage
+    state_class: "measurement"
     accuracy_decimals: 2
     filters:
       - multiply: 0.01
@@ -897,6 +923,7 @@ sensor:
     register_type: holding
     address: 218
     unit_of_measurement: "A"
+    state_class: "measurement"
     device_class: current
     accuracy_decimals: 0
     value_type: U_WORD
@@ -909,6 +936,7 @@ sensor:
     register_type: holding
     address: 219
     unit_of_measurement: "A"
+    state_class: "measurement"
     device_class: current
     accuracy_decimals: 0
     value_type: U_WORD
