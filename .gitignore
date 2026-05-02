@@ -1,6 +1,7 @@
 SHIP/
 /libs/
 *-backups
+/.history/
 
 *-bak
 *.bak
