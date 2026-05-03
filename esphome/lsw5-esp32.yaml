@@ -1,0 +1,281 @@
+# ----------------------------------------------------------------------------
+# lsw5-esp32 example configuration
+#
+# Portions of this file are adapted from the esphome-deye-inverter project,
+# including Deye SG0XLP3 Modbus register mappings, value formats, and related
+# sensor definitions.
+#
+# This file has been modified for the lsw5-esp32 hardware and installation
+# model, including pin assignments, UART setup, MQTT inputs, and
+# RS-485 support.
+#
+# See LICENSE in this directory for the Apache License, Version 2.0.
+# See NOTICE in this directory for attribution notices.
+#
+# You are hereby advised that this configuration has a few strange aspects for
+# historical reasons, and it will probably require adjustments to make it work
+# for your needs.
+# ----------------------------------------------------------------------------
+
+substitutions:
+  name: deye
+  friendly_name: Deye
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+  on_boot:
+    priority: 100 # after network initialisation
+    then:
+      - lambda: |-
+          #include "soc/gpio_sig_map.h"
+
+          gpio_num_t uart_led_pin = GPIO_NUM_38; // COM LED
+          int uart_num = id(inverter_uart).get_hw_serial_number();
+          int signal_idx = -1;
+
+          switch(uart_num) {
+            case 0: signal_idx = U0TXD_OUT_IDX; break;
+            case 1: signal_idx = U1TXD_OUT_IDX; break;
+            case 2: signal_idx = U2TXD_OUT_IDX; break;
+            default: ESP_LOGE("lambda", "What, UART is not hardware backed!?"); return;
+          }
+
+          gpio_reset_pin(uart_led_pin);
+          gpio_set_direction(uart_led_pin, GPIO_MODE_OUTPUT);
+
+          esp_rom_gpio_connect_out_signal(uart_led_pin, signal_idx, false, false);
+
+          ESP_LOGI("lambda", "Mirrored UART%d to GPIO %d", uart_num, uart_led_pin);
+
+esp32:
+  board: esp32-s3-devkitc1-n16r8
+  framework:
+    type: esp-idf
+
+psram:
+  mode: octal
+
+# Enable logging
+logger:
+  logs:
+    modbus: INFO
+    modbus_controller: INFO
+
+# Enable Home Assistant API
+api:
+  reboot_timeout: 0s
+  encryption:
+    key: !secret api.key
+
+ota:
+  - platform: esphome
+    password: !secret ota.password
+
+wifi:
+  ssid: !secret wifi.ssid
+  password: !secret wifi.password
+  domain: .lan
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Deye"
+    password: !secret ap.password
+
+web_server:
+  local: true
+
+captive_portal:
+
+mqtt:
+  broker: 192.168.1.10
+  discovery: false
+  birth_message:
+    topic: ${name}/availability
+    payload: online
+  will_message:
+    topic: ${name}/availability
+    payload: offline
+
+uart:
+  - id: inverter_uart
+    baud_rate: 9600
+    tx_pin: GPIO17
+    rx_pin: GPIO16
+  - id: meter_uart
+    baud_rate: 9600
+    rx_pin: GPIO21
+    tx_pin: GPIO48
+    flow_control_pin: GPIO47
+
+output:
+  - id: net_led_output
+    platform: ledc
+    pin: GPIO40
+    inverted: true
+  # - id: com_led_output
+  #   platform: ledc
+  #   pin: GPIO38
+  #   inverted: true
+  - id: rdy_led_output
+    platform: ledc
+    pin: GPIO39
+    inverted: true
+
+light:
+  - id: net_led
+    name: Net indicator
+    platform: monochromatic
+    output: net_led_output
+    state_topic: ${name}/net_led/state
+    command_topic: ${name}/net_led/set
+  # - id: com_led
+  #   name: Com indicator
+  #   platform: monochromatic
+  #   output: com_led_output
+  #   state_topic: ${name}/com_led/state
+  #   command_topic: ${name}/com_led/set
+  - id: rdy_led
+    name: Rdy indicator
+    platform: monochromatic
+    output: rdy_led_output
+    state_topic: ${name}/rdy_led/state
+    command_topic: ${name}/rdy_led/set
+
+modbus:
+  - id: inverter_modbus
+    uart_id: inverter_uart
+    role: client
+  - id: meter_modbus
+    uart_id: meter_uart
+    role: server
+
+modbus_controller:
+  - id: inverter_modbus_controller
+    modbus_id: inverter_modbus
+    update_interval: 5s
+    address: 1
+  - id: meter_modbus_controller
+    modbus_id: meter_modbus
+    address: 1
+    server_registers:
+      - address: 12
+        value_type: FP32
+        read_lambda: !lambda return id(meter_grid_power_ph1).state * 1000; // kW to W
+      - address: 14
+        value_type: FP32
+        read_lambda: !lambda return id(meter_grid_power_ph2).state * 1000; // kW to W
+      - address: 16
+        value_type: FP32
+        read_lambda: !lambda return id(meter_grid_power_ph3).state * 1000; // kW to W
+      - address: 72
+        value_type: FP32
+        read_lambda: !lambda return id(meter_grid_import_kwh).state;
+      - address: 74
+        value_type: FP32
+        read_lambda: !lambda return id(meter_grid_export_kwh).state;
+  - id: unk_modbus_controller
+    modbus_id: meter_modbus
+    address: 0xab # ???
+    server_registers:
+      - address: 286 # 0x11e
+        value_type: FP32
+        read_lambda: !lambda ESP_LOGD("modbus", "Read unkreg"); return 0;
+        write_lambda: !lambda ESP_LOGD("modbus", "Write unkreg value %f", x); return true;
+
+sensor:
+  - id: meter_grid_power_ph1
+    platform: mqtt_subscribe
+    topic: elec/ph1/active_power
+    unit_of_measurement: kW
+    accuracy_decimals: 3
+    discovery: false
+  - id: meter_grid_power_ph2
+    platform: mqtt_subscribe
+    topic: elec/ph2/active_power
+    unit_of_measurement: kW
+    accuracy_decimals: 3
+    discovery: false
+  - id: meter_grid_power_ph3
+    platform: mqtt_subscribe
+    topic: elec/ph3/active_power
+    unit_of_measurement: kW
+    accuracy_decimals: 3
+    discovery: false
+  - id: meter_grid_import_kwh
+    platform: mqtt_subscribe
+    topic: elec/forward_active_energy
+    unit_of_measurement: kWh
+    accuracy_decimals: 3
+    discovery: false
+  - id: meter_grid_export_kwh
+    platform: mqtt_subscribe
+    topic: elec/reverse_active_energy
+    unit_of_measurement: kWh
+    accuracy_decimals: 3
+    discovery: false
+
+  - id: free_heap
+    name: Free heap
+    platform: template
+    lambda: !lambda return esp_get_free_heap_size();
+    update_interval: 60s
+    unit_of_measurement: "bytes"
+
+  # Start esphome-deye-inverter
+
+  - platform: modbus_controller
+    modbus_controller_id: inverter_modbus_controller
+    name: "Grid Frequency"
+    register_type: holding
+    address: 609
+    unit_of_measurement: "Hz"
+    device_class: frequency
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+    value_type: U_WORD
+    icon: "mdi:sine-wave"
+    state_topic: deye/grid_frequency
+
+  - platform: modbus_controller
+    modbus_controller_id: inverter_modbus_controller
+    name: "Grid L1 Voltage"
+    id: grid_voltage_l1
+    register_type: holding
+    address: 598
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+    value_type: U_WORD
+    icon: "mdi:sine-wave"
+
+  - platform: modbus_controller
+    modbus_controller_id: inverter_modbus_controller
+    name: "Grid L2 Voltage"
+    id: grid_voltage_l2
+    register_type: holding
+    address: 599
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+    value_type: U_WORD
+    icon: "mdi:sine-wave"
+
+  - platform: modbus_controller
+    modbus_controller_id: inverter_modbus_controller
+    name: "Grid L3 Voltage"
+    id: grid_voltage_l3
+    register_type: holding
+    address: 600
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+    value_type: U_WORD
