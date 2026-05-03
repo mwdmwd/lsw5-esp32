@@ -192,12 +192,12 @@ modbus_controller:
         read_lambda: !lambda return id(meter_grid_export_kwh).state;
   - id: unk_modbus_controller
     modbus_id: meter_modbus
-    address: 0xab # ???
+    address: 0xab # unknown device; the inverter writes float32(0.0) to register 286 here every ~10th poll
     server_registers:
       - address: 286 # 0x11e
         value_type: FP32
-        read_lambda: !lambda ESP_LOGD("modbus", "Read unkreg"); return 0;
-        write_lambda: !lambda ESP_LOGD("modbus", "Write unkreg value %f", x); return true;
+        read_lambda: !lambda ESP_LOGD("modbus", "Read unknown register"); return 0;
+        write_lambda: !lambda ESP_LOGD("modbus", "Write unknown register: %f", x); return true;
 
 text_sensor:
   - id: fast_power # not yet used but the goal would be to refresh this at 8 Hz instead of ⅕ Hz
@@ -369,7 +369,7 @@ sensor:
       - multiply: 0.01
     value_type: U_WORD
     icon: "mdi:sine-wave"
-    state_topic: ${name}/grid_ph1_frequency
+    state_topic: ${name}/grid_ph1_frequency # yes I know there can't be a different frequency per phase but I did not while reading the original documentation for a different 3-phase inverter which actually has 3 separate phase frequency registers, of course in practise these registers always had the same value even on that inverter
     discovery: false
 
   # PV voltage
