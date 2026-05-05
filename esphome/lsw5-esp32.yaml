@@ -21,6 +21,7 @@ substitutions:
   name: inverter
   friendly_name: Inverter
   modbus_controller_id: inverter_modbus_controller
+  meter_mqtt_input_timeout: 30s
   # ⚠️⚠️⚠️ CAUTION! UWAGA! ВНИМАНИЕ! ACHTUNG! 注意! ⚠️⚠️⚠️
   # Personal historical-accounting offset. This makes my HA energy sensor line
   # up with existing data from a different inverter. Set to 0.0 unless you are
@@ -177,19 +178,34 @@ modbus_controller:
     server_registers:
       - address: 12
         value_type: FP32
-        read_lambda: !lambda return id(meter_grid_power_ph1).state * 1000; // kW to W
+        read_lambda: !lambda |-
+          auto value = id(meter_grid_power_ph1).state;
+          if (!id(meter_grid_power_ph1).has_state() || isnan(value)) return 0.0f;
+          return value * 1000.0f; // kW to W
       - address: 14
         value_type: FP32
-        read_lambda: !lambda return id(meter_grid_power_ph2).state * 1000; // kW to W
+        read_lambda: !lambda |-
+          auto value = id(meter_grid_power_ph2).state;
+          if (!id(meter_grid_power_ph2).has_state() || isnan(value)) return 0.0f;
+          return value * 1000.0f; // kW to W
       - address: 16
         value_type: FP32
-        read_lambda: !lambda return id(meter_grid_power_ph3).state * 1000; // kW to W
+        read_lambda: !lambda |-
+          auto value = id(meter_grid_power_ph3).state;
+          if (!id(meter_grid_power_ph3).has_state() || isnan(value)) return 0.0f;
+          return value * 1000.0f; // kW to W
       - address: 72
         value_type: FP32
-        read_lambda: !lambda return id(meter_grid_import_kwh).state;
+        read_lambda: !lambda |-
+          auto value = id(meter_grid_import_kwh).state;
+          if (!id(meter_grid_import_kwh).has_state() || isnan(value)) return 0.0f;
+          return value;
       - address: 74
         value_type: FP32
-        read_lambda: !lambda return id(meter_grid_export_kwh).state;
+        read_lambda: !lambda |-
+          auto value = id(meter_grid_export_kwh).state;
+          if (!id(meter_grid_export_kwh).has_state() || isnan(value)) return 0.0f;
+          return value;
   - id: unk_modbus_controller
     modbus_id: meter_modbus
     address: 0xab # unknown device; the inverter writes float32(0.0) to register 286 here every ~10th poll
@@ -214,29 +230,40 @@ sensor:
     unit_of_measurement: kW
     accuracy_decimals: 3
     discovery: false
+    filters:
+      - timeout: ${meter_mqtt_input_timeout}
   - id: meter_grid_power_ph2
     platform: mqtt_subscribe
     topic: elec/ph2/active_power
     unit_of_measurement: kW
     accuracy_decimals: 3
     discovery: false
+    filters:
+      - timeout: ${meter_mqtt_input_timeout}
   - id: meter_grid_power_ph3
     platform: mqtt_subscribe
     topic: elec/ph3/active_power
     unit_of_measurement: kW
     accuracy_decimals: 3
     discovery: false
+    filters:
+      - timeout: ${meter_mqtt_input_timeout}
   - id: meter_grid_import_kwh
     platform: mqtt_subscribe
     topic: elec/forward_active_energy
     unit_of_measurement: kWh
     accuracy_decimals: 3
     discovery: false
+    filters:
+      - filter_out: nan
   - id: meter_grid_export_kwh
     platform: mqtt_subscribe
     topic: elec/reverse_active_energy
     unit_of_measurement: kWh
     accuracy_decimals: 3
+    discovery: false
+    filters:
+      - filter_out: nan
 
   - id: free_heap
     name: Free heap
@@ -474,7 +501,12 @@ sensor:
       # - delta: 0.0  # prevent spike if Total Generator Production moves earlier
       - multiply: 0.1
       - offset: ${solar_production_offset_kwh}
-      - offset: !lambda return -id(total_generator_production).state;
+      - lambda: |-
+          auto generator_production = id(total_generator_production).state;
+          if (!id(total_generator_production).has_state() || isnan(generator_production)) {
+            return x;
+          }
+          return x - generator_production;
       - min:
           window_size: 3 # prevent spike on readout
     icon: "mdi:solar-power"
