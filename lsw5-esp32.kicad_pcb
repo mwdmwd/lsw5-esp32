@@ -2723,7 +2723,7 @@
 		(path "/82b595b9-9bbd-42cb-a888-efb84730fe0f")
 		(sheetname "/")
 		(sheetfile "lsw5-esp32.kicad_sch")
-		(attr through_hole)
+		(attr through_hole exclude_from_pos_files)
 		(fp_line
 			(start -1.38 -1.38)
 			(end 0 -1.38)
@@ -5176,7 +5176,7 @@
 		(path "/d5a233e8-accf-463f-af55-71b7206b0af8")
 		(sheetname "/")
 		(sheetfile "lsw5-esp32.kicad_sch")
-		(attr through_hole)
+		(attr through_hole exclude_from_pos_files)
 		(fp_line
 			(start 1.38 1.27)
 			(end 1.38 9)
@@ -5970,7 +5970,7 @@
 		(path "/02a1b121-0396-4e77-9acf-482a064440c9")
 		(sheetname "/")
 		(sheetfile "lsw5-esp32.kicad_sch")
-		(attr through_hole)
+		(attr through_hole exclude_from_pos_files)
 		(fp_line
 			(start -1.27 -1.27)
 			(end 0 -1.27)
