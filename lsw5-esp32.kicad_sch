@@ -6608,6 +6608,12 @@
 		(uuid "dbc72a39-0e5d-4635-ae13-739e18c3f86d")
 	)
 	(junction
+		(at 182.88 88.9)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "e4b629a2-71e8-4c35-9ddb-2d4fffb64e5b")
+	)
+	(junction
 		(at 69.85 180.34)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -7172,16 +7178,6 @@
 			(type default)
 		)
 		(uuid "2e50c98f-909d-4c99-8c8e-2a72c0c82b42")
-	)
-	(wire
-		(pts
-			(xy 142.24 22.86) (xy 142.24 24.13)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "2eb500ce-95f7-4be7-bdc9-fd0f6fe32bcd")
 	)
 	(wire
 		(pts
@@ -8735,16 +8731,6 @@
 	)
 	(wire
 		(pts
-			(xy 152.4 22.86) (xy 152.4 24.13)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f2d9d24d-6555-4f1c-9dac-e2808e52eb6e")
-	)
-	(wire
-		(pts
 			(xy 77.47 43.18) (xy 77.47 45.72)
 		)
 		(stroke
@@ -9410,84 +9396,6 @@
 		)
 	)
 	(symbol
-		(lib_id "custom-power:GND_ISO")
-		(at 152.4 24.13 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "08c5bf4c-1b68-4c49-87df-7591b3db297a")
-		(property "Reference" "#PWR031"
-			(at 152.4 30.48 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND_ISO"
-			(at 152.4 29.21 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 152.4 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 152.4 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"GND_ISO\""
-			(at 152.4 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "6a38cea0-53fc-42b8-abea-ccc189e4aa1e")
-		)
-		(instances
-			(project "lsw5-esp32"
-				(path "/e9c69beb-c190-4231-ad3e-5deecf8ebc47"
-					(reference "#PWR031")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:+3V3")
 		(at 62.23 17.78 0)
 		(unit 1)
@@ -9639,84 +9547,6 @@
 			(project "lsw5-esp32"
 				(path "/e9c69beb-c190-4231-ad3e-5deecf8ebc47"
 					(reference "C5")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "custom-power:+5V_ISO")
-		(at 142.24 22.86 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "110c8274-e43a-44e2-922a-ebf80ece3437")
-		(property "Reference" "#PWR029"
-			(at 142.24 26.67 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+5V_ISO"
-			(at 142.24 17.78 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 142.24 22.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 142.24 22.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+5V_ISO\""
-			(at 142.24 22.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "08f3ad18-9462-4ab6-b574-d7e97927e945")
-		)
-		(instances
-			(project "lsw5-esp32"
-				(path "/e9c69beb-c190-4231-ad3e-5deecf8ebc47"
-					(reference "#PWR029")
 					(unit 1)
 				)
 			)
@@ -10509,84 +10339,6 @@
 			(project "lsw5-esp32"
 				(path "/e9c69beb-c190-4231-ad3e-5deecf8ebc47"
 					(reference "R2")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:PWR_FLAG")
-		(at 152.4 22.86 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "284c9597-3558-444e-9869-ea7e004568d7")
-		(property "Reference" "#FLG05"
-			(at 152.4 20.955 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "PWR_FLAG"
-			(at 152.4 17.78 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 152.4 22.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 152.4 22.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Special symbol for telling ERC where power comes from"
-			(at 152.4 22.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "bfb60d5b-bdd5-41bb-806c-5300f0d391dc")
-		)
-		(instances
-			(project "lsw5-esp32"
-				(path "/e9c69beb-c190-4231-ad3e-5deecf8ebc47"
-					(reference "#FLG05")
 					(unit 1)
 				)
 			)
@@ -12473,84 +12225,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:PWR_FLAG")
-		(at 142.24 24.13 180)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "75442637-a1c5-455b-bfff-98aa19526aa1")
-		(property "Reference" "#FLG03"
-			(at 142.24 26.035 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "PWR_FLAG"
-			(at 142.24 29.21 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 142.24 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 142.24 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Special symbol for telling ERC where power comes from"
-			(at 142.24 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "ba946695-0fa8-4890-ae28-3de86da297ba")
-		)
-		(instances
-			(project "lsw5-esp32"
-				(path "/e9c69beb-c190-4231-ad3e-5deecf8ebc47"
-					(reference "#FLG03")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "custom-power:+5V_ISO")
 		(at 208.28 90.17 0)
 		(unit 1)
@@ -13667,6 +13341,84 @@
 			(project "lsw5-esp32"
 				(path "/e9c69beb-c190-4231-ad3e-5deecf8ebc47"
 					(reference "#PWR028")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:PWR_FLAG")
+		(at 182.88 88.9 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "a820bbee-40bc-41e2-ac37-4d8f1583c6b0")
+		(property "Reference" "#FLG03"
+			(at 182.88 86.995 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "PWR_FLAG"
+			(at 182.88 83.82 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 182.88 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 182.88 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Special symbol for telling ERC where power comes from"
+			(at 182.88 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "309ff02d-d4e4-4ae4-8ba7-4e6389897005")
+		)
+		(instances
+			(project "lsw5-esp32"
+				(path "/e9c69beb-c190-4231-ad3e-5deecf8ebc47"
+					(reference "#FLG03")
 					(unit 1)
 				)
 			)
