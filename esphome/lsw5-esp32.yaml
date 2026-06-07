@@ -504,8 +504,8 @@ sensor:
       - offset: ${solar_production_offset_kwh}
       - lambda: |-
           auto generator_production = id(total_generator_production).state;
-          if (!id(total_generator_production).has_state() || isnan(generator_production)) {
-            return x;
+          if (!id(total_generator_production).has_state() || isnan(generator_production) || generator_production <= 0.0f) {
+            return {};
           }
           return x - generator_production;
       - min:
@@ -526,6 +526,7 @@ sensor:
     accuracy_decimals: 1
     value_type: U_DWORD_R
     filters:
+      - filter_out: 0
       - multiply: 0.1
     icon: "mdi:generator-stationary"
     discovery: true
