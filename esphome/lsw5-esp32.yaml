@@ -104,7 +104,7 @@ captive_portal:
 mqtt:
   broker: 192.168.1.10
   discovery: true
-  reboot_timeout: 1min
+  reboot_timeout: 2min
   birth_message:
     topic: ${name}/availability
     payload: online
