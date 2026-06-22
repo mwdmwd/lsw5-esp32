@@ -71,6 +71,7 @@ logger:
     modbus_controller.sensor: INFO
     modbus.number: INFO # why isn't it called modbus_controller.number xd
     modbus: INFO
+    modbus_server: INFO
     sensor: INFO
     number: INFO
     switch: INFO
@@ -173,10 +174,12 @@ modbus_controller:
     modbus_id: inverter_modbus
     update_interval: 5s
     address: 1
-  - id: meter_modbus_controller
+
+modbus_server:
+  - id: meter_modbus_server
     modbus_id: meter_modbus
     address: 1
-    server_registers:
+    registers:
       - address: 12
         value_type: FP32
         read_lambda: !lambda |-
@@ -207,10 +210,10 @@ modbus_controller:
           auto value = id(meter_grid_export_kwh).state;
           if (!id(meter_grid_export_kwh).has_state() || isnan(value)) return 0.0f;
           return value;
-  - id: unk_modbus_controller
+  - id: unk_modbus_server
     modbus_id: meter_modbus
     address: 0xab # unknown device; the inverter writes float32(0.0) to register 286 here every ~10th poll
-    server_registers:
+    registers:
       - address: 286 # 0x11e
         value_type: FP32
         read_lambda: !lambda ESP_LOGD("modbus", "Read unknown register"); return 0;
