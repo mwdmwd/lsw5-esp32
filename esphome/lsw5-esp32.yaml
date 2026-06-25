@@ -28,6 +28,14 @@ substitutions:
   # me or you enjoy corrupting your long-term statistics.
   solar_production_offset_kwh: 24161.9
 
+globals:
+  # Highest Total PV Production published so far. This keeps the generator
+  # subtraction from making the total_increasing sensor move backwards.
+  - id: total_pv_production_floor_kwh
+    type: float
+    restore_value: true
+    initial_value: "-1.0f"
+
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
@@ -513,6 +521,19 @@ sensor:
           return x - generator_production;
       - min:
           window_size: 3 # prevent spike on readout
+          send_every: 1
+      - lambda: |-
+          if (isnan(x)) {
+            return {};
+          }
+          const float rounded = roundf(x * 10.0f) / 10.0f;
+          auto &floor = id(total_pv_production_floor_kwh);
+          if (isnan(floor) || floor < 0.0f || rounded >= floor) {
+            floor = rounded;
+            return rounded;
+          }
+          ESP_LOGW("total_pv_production", "Suppressing non-monotonic Total PV Production: %.1f -> %.1f kWh", floor, rounded);
+          return {};
     icon: "mdi:solar-power"
     state_topic: ${name}/generated_energy
     discovery: false
