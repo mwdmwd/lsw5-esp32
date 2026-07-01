@@ -22,6 +22,10 @@ STATE_UPDATE_INTERVAL_SECONDS = 1.0
 IDLE_SLEEP_SECONDS = 0.01
 MAX_BUFFER_SIZE = 256
 LOGGER_PREFIX = b"\xc2"
+PROFILE_RANDOM = "random"
+PROFILE_GENERATOR_FIRST = "generator-first"
+ENERGY_TOTAL_ADDRESS = 534
+ENERGY_GENERATOR_ADDRESS = 537
 
 
 def clamp(value: int, minimum: int, maximum: int) -> int:
@@ -56,7 +60,13 @@ def get_u32(registers: dict[int, int], low_word_address: int) -> int:
 
 @dataclass
 class Inverter:
+    profile: str = PROFILE_RANDOM
+    event_interval_seconds: float = 120.0
+    catchup_delay_seconds: float = 600.0
+    log_energy_reads: bool = False
     registers: dict[int, int] = field(default_factory=dict)
+    next_event_at: float | None = None
+    pending_total_catchups: list[float] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.reset_registers()
@@ -111,10 +121,12 @@ class Inverter:
             652: 500,
             653: 1500,
         }
-        set_u32(self.registers, 534, 10_000)  # Total PV production, 0.1 kWh
-        set_u32(self.registers, 537, 10_000)  # Total generator production, 0.1 kWh
+        set_u32(self.registers, ENERGY_TOTAL_ADDRESS, 10_000)  # Total PV production, 0.1 kWh
+        set_u32(
+            self.registers, ENERGY_GENERATOR_ADDRESS, 10_000
+        )  # Total generator production, 0.1 kWh
 
-    def update(self) -> None:
+    def update(self, now: float | None = None) -> None:
         # Grid voltages
         for register in (598, 599, 600):
             self.registers[register] = clamp(
@@ -151,15 +163,76 @@ class Inverter:
             # Battery current
             self.registers[591] = to_u16(int(battery_power * 100 / battery_voltage))
 
+        if self.profile == PROFILE_RANDOM:
+            self.update_random_energy()
+        elif self.profile == PROFILE_GENERATOR_FIRST:
+            self.update_generator_first_energy(time.monotonic() if now is None else now)
+        else:
+            raise ValueError(f"Unsupported inverter profile: {self.profile}")
+
+    def update_random_energy(self) -> None:
         # Total PV production
         if random.random() > 0.9:
-            set_u32(self.registers, 534, get_u32(self.registers, 534) + 1)
+            set_u32(
+                self.registers,
+                ENERGY_TOTAL_ADDRESS,
+                get_u32(self.registers, ENERGY_TOTAL_ADDRESS) + 1,
+            )
 
         # Total generator production
         if random.random() > 0.95:
-            set_u32(self.registers, 537, get_u32(self.registers, 537) + 1)
+            set_u32(
+                self.registers,
+                ENERGY_GENERATOR_ADDRESS,
+                get_u32(self.registers, ENERGY_GENERATOR_ADDRESS) + 1,
+            )
+
+    def update_generator_first_energy(self, now: float) -> None:
+        if self.next_event_at is None:
+            self.next_event_at = now + self.event_interval_seconds
+
+        while now >= self.next_event_at:
+            generator_raw = get_u32(self.registers, ENERGY_GENERATOR_ADDRESS) + 1
+            set_u32(self.registers, ENERGY_GENERATOR_ADDRESS, generator_raw)
+            self.pending_total_catchups.append(self.next_event_at + self.catchup_delay_seconds)
+            LOGGER.info(
+                "Profile event: generator_raw=%d total_raw=%d catchup_due_in=%.1fs",
+                generator_raw,
+                get_u32(self.registers, ENERGY_TOTAL_ADDRESS),
+                self.catchup_delay_seconds,
+            )
+            self.next_event_at += self.event_interval_seconds
+
+        due_count = sum(1 for due_at in self.pending_total_catchups if due_at <= now)
+        if due_count:
+            total_raw = get_u32(self.registers, ENERGY_TOTAL_ADDRESS) + due_count
+            set_u32(self.registers, ENERGY_TOTAL_ADDRESS, total_raw)
+            self.pending_total_catchups = [
+                due_at for due_at in self.pending_total_catchups if due_at > now
+            ]
+            LOGGER.info(
+                "Profile catchup: total_raw=%d generator_raw=%d corrected_raw=%d",
+                total_raw,
+                get_u32(self.registers, ENERGY_GENERATOR_ADDRESS),
+                total_raw - get_u32(self.registers, ENERGY_GENERATOR_ADDRESS),
+            )
 
     def read_holding_registers(self, start_address: int, count: int) -> list[int]:
+        if (
+            self.log_energy_reads
+            and start_address < ENERGY_GENERATOR_ADDRESS + 2
+            and start_address + count > ENERGY_TOTAL_ADDRESS
+        ):
+            total_raw = get_u32(self.registers, ENERGY_TOTAL_ADDRESS)
+            generator_raw = get_u32(self.registers, ENERGY_GENERATOR_ADDRESS)
+            LOGGER.info(
+                "Energy read: addr=%d count=%d total_raw=%d generator_raw=%d corrected_raw=%d",
+                start_address,
+                count,
+                total_raw,
+                generator_raw,
+                total_raw - generator_raw,
+            )
         return [self.registers.get(start_address + offset, 0) for offset in range(count)]
 
     def write_holding_registers(self, start_address: int, values: Iterable[int]) -> None:
@@ -229,10 +302,22 @@ def process_buffer(inverter: Inverter, port: serial.Serial, buffer: bytes) -> by
     return buffer
 
 
-def run_emulator(port_name: str, baudrate: int = DEFAULT_BAUDRATE) -> None:
+def run_emulator(
+    port_name: str,
+    baudrate: int = DEFAULT_BAUDRATE,
+    profile: str = PROFILE_RANDOM,
+    event_interval_seconds: float = 120.0,
+    catchup_delay_seconds: float = 600.0,
+    log_energy_reads: bool = False,
+) -> None:
     LOGGER.info("Starting fake inverter on %s at %d bps", port_name, baudrate)
 
-    inverter = Inverter()
+    inverter = Inverter(
+        profile=profile,
+        event_interval_seconds=event_interval_seconds,
+        catchup_delay_seconds=catchup_delay_seconds,
+        log_energy_reads=log_energy_reads,
+    )
 
     try:
         with serial.Serial(port_name, baudrate, timeout=SERIAL_TIMEOUT_SECONDS) as port:
@@ -242,7 +327,7 @@ def run_emulator(port_name: str, baudrate: int = DEFAULT_BAUDRATE) -> None:
             while True:
                 now = time.monotonic()
                 if now - last_update >= STATE_UPDATE_INTERVAL_SECONDS:
-                    inverter.update()
+                    inverter.update(now)
                     last_update = now
 
                 if not port.in_waiting:
@@ -261,15 +346,50 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("port", help="Serial port, for example /dev/ttyUSB0")
     parser.add_argument("--baud", type=int, default=DEFAULT_BAUDRATE, help="Serial baud rate")
+    parser.add_argument(
+        "--profile",
+        choices=(PROFILE_RANDOM, PROFILE_GENERATOR_FIRST),
+        default=PROFILE_RANDOM,
+        help=(
+            "Energy register behavior. 'generator-first' increments register 537 before "
+            "register 534 catches up."
+        ),
+    )
+    parser.add_argument(
+        "--event-interval",
+        type=float,
+        default=120.0,
+        help="Seconds between generator-first profile events",
+    )
+    parser.add_argument(
+        "--catchup-delay",
+        type=float,
+        default=600.0,
+        help="Seconds before total production catches up after a generator-first event",
+    )
+    parser.add_argument(
+        "--log-energy-reads",
+        action="store_true",
+        help="Log returned raw energy counters whenever registers 534/537 are read",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(
-        level=logging.INFO, format=LOGGER_FORMAT, handlers=[logging.StreamHandler(sys.stdout)]
+        level=logging.INFO,
+        format=LOGGER_FORMAT,
+        handlers=[logging.StreamHandler(sys.stdout)],
     )
     args = parse_args(sys.argv[1:] if argv is None else argv)
-    run_emulator(args.port, args.baud)
+    run_emulator(
+        args.port,
+        args.baud,
+        args.profile,
+        args.event_interval,
+        args.catchup_delay,
+        args.log_energy_reads,
+    )
     return 0
 
 
