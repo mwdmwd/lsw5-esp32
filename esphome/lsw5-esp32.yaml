@@ -29,12 +29,20 @@ substitutions:
   solar_production_offset_kwh: 24161.9
 
 globals:
-  # Highest Total PV Production published so far. This keeps the generator
-  # subtraction from making the total_increasing sensor move backwards.
+  # Highest Total PV Production published during this boot. Seeded from the
+  # retained MQTT state topic so normal monotonic filtering does not write NVS.
   - id: total_pv_production_floor_kwh
     type: float
-    restore_value: true
+    restore_value: false
     initial_value: "-1.0f"
+
+  # The PV total must not publish after boot until the retained MQTT floor has
+  # been loaded, otherwise a reboot during a stale inverter window could leak a
+  # lower value before the broker checkpoint arrives.
+  - id: total_pv_production_floor_seeded
+    type: bool
+    restore_value: false
+    initial_value: "false"
 
 esphome:
   name: ${name}
@@ -121,6 +129,23 @@ mqtt:
   will_message:
     topic: ${name}/availability
     payload: offline
+  on_message:
+    - topic: ${name}/generated_energy
+      then:
+        - lambda: |-
+            auto parsed = parse_number<float>(x);
+            if (!parsed.has_value() || isnan(parsed.value()) || parsed.value() < 0.0f) {
+              ESP_LOGW("total_pv_production", "Ignoring invalid retained Total PV Production floor: %s", x.c_str());
+              return;
+            }
+
+            const float rounded = roundf(parsed.value() * 10.0f) / 10.0f;
+            auto &floor = id(total_pv_production_floor_kwh);
+            if (isnan(floor) || rounded > floor) {
+              floor = rounded;
+              ESP_LOGI("total_pv_production", "Loaded Total PV Production floor from MQTT: %.1f kWh", floor);
+            }
+            id(total_pv_production_floor_seeded) = true;
 
 uart:
   - id: inverter_uart
@@ -528,14 +553,23 @@ sensor:
           }
           const float rounded = roundf(x * 10.0f) / 10.0f;
           auto &floor = id(total_pv_production_floor_kwh);
+
+          if (!id(total_pv_production_floor_seeded)) {
+            ESP_LOGW("total_pv_production", "Suppressing Total PV Production until retained MQTT floor is loaded: %.1f kWh", rounded);
+            return {};
+          }
+
           if (isnan(floor) || floor < 0.0f || rounded >= floor) {
-            floor = rounded;
+            if (isnan(floor) || rounded > floor) {
+              floor = rounded;
+            }
             return rounded;
           }
           ESP_LOGW("total_pv_production", "Suppressing non-monotonic Total PV Production: %.1f -> %.1f kWh", floor, rounded);
           return {};
     icon: "mdi:solar-power"
     state_topic: ${name}/generated_energy
+    retain: true
     discovery: false
 
   - platform: modbus_controller
