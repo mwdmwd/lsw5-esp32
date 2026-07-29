@@ -20,7 +20,7 @@ DEFAULT_BAUDRATE = 9600
 SERIAL_TIMEOUT_SECONDS = 0.1
 STATE_UPDATE_INTERVAL_SECONDS = 1.0
 IDLE_SLEEP_SECONDS = 0.01
-MAX_BUFFER_SIZE = 256
+MAX_MODBUS_BUFFER_SIZE = 256
 LOGGER_PREFIX = b"\xc2"
 PROFILE_RANDOM = "random"
 PROFILE_GENERATOR_FIRST = "generator-first"
@@ -276,9 +276,26 @@ def parse_request(buffer: bytes):
     return parsed.data.value, frame_size
 
 
-def process_buffer(inverter: Inverter, port: serial.Serial, buffer: bytes) -> bytes:
-    buffer = buffer.lstrip(LOGGER_PREFIX)
+def find_modbus_frame_offset(buffer: bytes) -> int | None:
+    """Find a CRC-valid request after UART noise without discarding it bytewise."""
+    for offset in range(1, len(buffer)):
+        if buffer[offset] not in (0x01, 0xA2):
+            continue
+        if offset + 1 >= len(buffer) or buffer[offset + 1] not in (
+            FunctionCode.ReadHoldingRegisters,
+            FunctionCode.PresetSingleRegister,
+            FunctionCode.PresetMultipleRegisters,
+        ):
+            continue
+        try:
+            parse_request(buffer[offset:])
+        except ConstructError:
+            continue
+        return offset
+    return None
 
+
+def process_buffer(inverter: Inverter, port: serial.Serial, buffer: bytes) -> bytes:
     while buffer:
         if len(buffer) < 4:
             return buffer
@@ -286,9 +303,16 @@ def process_buffer(inverter: Inverter, port: serial.Serial, buffer: bytes) -> by
         try:
             request, frame_size = parse_request(buffer)
         except ConstructError:
-            if len(buffer) > MAX_BUFFER_SIZE:
-                LOGGER.warning("Discarding one byte from oversized garbage buffer")
-                return buffer[1:]
+            if len(buffer) > MAX_MODBUS_BUFFER_SIZE:
+                frame_offset = find_modbus_frame_offset(buffer)
+                discard_size = (
+                    frame_offset
+                    if frame_offset is not None
+                    else len(buffer) - MAX_MODBUS_BUFFER_SIZE
+                )
+                LOGGER.warning("Discarding %d bytes from oversized garbage buffer", discard_size)
+                buffer = buffer[discard_size:]
+                continue
             return buffer
 
         LOGGER.info("Request: slave=%s function=%s", request.slave_addr, request.function)
