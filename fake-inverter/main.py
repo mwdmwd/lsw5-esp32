@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 import serial
 from construct import ConstructError
 
+from firmware_upgrade import FirmwareUpgrade
 from modbus import FunctionCode, RequestFrame, ResponseFrame
 
 LOGGER = logging.getLogger(__name__)
@@ -67,6 +68,7 @@ class Inverter:
     registers: dict[int, int] = field(default_factory=dict)
     next_event_at: float | None = None
     pending_total_catchups: list[float] = field(default_factory=list)
+    firmware_upgrade: FirmwareUpgrade = field(default_factory=FirmwareUpgrade)
 
     def __post_init__(self) -> None:
         self.reset_registers()
@@ -236,8 +238,17 @@ class Inverter:
         return [self.registers.get(start_address + offset, 0) for offset in range(count)]
 
     def write_holding_registers(self, start_address: int, values: Iterable[int]) -> None:
+        values = list(values)
         for offset, value in enumerate(values):
             self.registers[start_address + offset] = to_u16(value)
+        if start_address == 1080 and len(values) == 2 and values[1] == 0x60:
+            self.firmware_upgrade.begin(to_u16(values[0]))
+
+    def service_firmware_upgrade(self, port: serial.Serial, now: float | None = None) -> None:
+        ready = self.firmware_upgrade.poll_ready(now)
+        if ready is not None:
+            port.write(ready)
+            LOGGER.info("Response: %s", ready.hex())
 
 
 def build_response(inverter: Inverter, request) -> bytes | None:
@@ -297,6 +308,17 @@ def find_modbus_frame_offset(buffer: bytes) -> int | None:
 
 def process_buffer(inverter: Inverter, port: serial.Serial, buffer: bytes) -> bytes:
     while buffer:
+        if inverter.firmware_upgrade.active:
+            buffer, replies = inverter.firmware_upgrade.consume(buffer)
+            for reply in replies:
+                port.write(reply)
+            if inverter.firmware_upgrade.active or not buffer:
+                return buffer
+
+        buffer = buffer.lstrip(LOGGER_PREFIX)
+        if not buffer:
+            return buffer
+
         if len(buffer) < 4:
             return buffer
 
@@ -353,6 +375,8 @@ def run_emulator(
                 if now - last_update >= STATE_UPDATE_INTERVAL_SECONDS:
                     inverter.update(now)
                     last_update = now
+
+                inverter.service_firmware_upgrade(port, now)
 
                 if not port.in_waiting:
                     time.sleep(IDLE_SLEEP_SECONDS)
