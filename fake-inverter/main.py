@@ -3,6 +3,7 @@
 import argparse
 import logging
 import random
+import re
 import sys
 import time
 from collections.abc import Iterable
@@ -30,6 +31,7 @@ ENERGY_GENERATOR_ADDRESS = 537
 LOW_NOISE_MODE_ADDRESS = 35
 LOW_NOISE_COMMAND_ADDRESS = 36
 LOW_NOISE_COMMAND_MAGIC = 100
+MAX_LOGGED_REGISTER_VALUES = 16
 
 
 def clamp(value: int, minimum: int, maximum: int) -> int:
@@ -51,6 +53,78 @@ def words_to_bytes(registers: Iterable[int]) -> list[int]:
         value = to_u16(register)
         data.extend((value >> 8, value & 0xFF))
     return data
+
+
+def bytes_to_words(data: Iterable[int]) -> list[int]:
+    data = list(data)
+    return [(data[index] << 8) | data[index + 1] for index in range(0, len(data) - 1, 2)]
+
+
+def format_function(function) -> str:
+    function_number = int(function)
+    try:
+        function_code = FunctionCode(function_number)
+    except ValueError:
+        return f"FC{function_number:02d} Unknown"
+    function_name = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", function_code.name)
+    return f"FC{function_number:02d} {function_name}"
+
+
+def format_register_values(start_address: int, values: Iterable[int]) -> str:
+    values = list(values)
+    displayed_values = values[:MAX_LOGGED_REGISTER_VALUES]
+    formatted = ", ".join(
+        f"r{start_address + offset}={to_u16(value)} (0x{to_u16(value):04X})"
+        for offset, value in enumerate(displayed_values)
+    )
+    if len(values) > len(displayed_values):
+        formatted += f", ... (+{len(values) - len(displayed_values)} registers)"
+    return f"[{formatted}]"
+
+
+def format_modbus_request(request) -> str:
+    function_number = int(request.function)
+    prefix = f"Modbus request: slave={request.slave_addr}, {format_function(request.function)}"
+
+    if function_number in (
+        FunctionCode.ReadHoldingRegisters,
+        FunctionCode.ReadInputRegisters,
+    ):
+        return f"{prefix}, start={request.address}, count={request.content.nr_registers}"
+    if function_number == FunctionCode.PresetSingleRegister:
+        return (
+            f"{prefix}, register={request.address}, "
+            f"value={request.content.data} (0x{request.content.data:04X})"
+        )
+    if function_number == FunctionCode.PresetMultipleRegisters:
+        return (
+            f"{prefix}, start={request.address}, count={request.content.nr_registers}, "
+            f"values={format_register_values(request.address, request.content.data)}"
+        )
+    return f"{prefix}, address={request.address}"
+
+
+def format_modbus_response(request, response) -> str:
+    function_number = int(response.function)
+    prefix = f"Modbus response: slave={response.slave_addr}, {format_function(response.function)}"
+
+    if function_number in (
+        FunctionCode.ReadHoldingRegisters,
+        FunctionCode.ReadInputRegisters,
+    ):
+        registers = bytes_to_words(response.content)
+        return f"{prefix}, values={format_register_values(request.address, registers)}"
+    if function_number == FunctionCode.PresetSingleRegister:
+        return (
+            f"{prefix}, register={response.content.address}, "
+            f"value={response.content.data} (0x{response.content.data:04X}), acknowledged"
+        )
+    if function_number == FunctionCode.PresetMultipleRegisters:
+        return (
+            f"{prefix}, start={response.content.address}, "
+            f"count={response.content.nr_registers}, acknowledged"
+        )
+    return prefix
 
 
 def set_u32(registers: dict[int, int], low_word_address: int, value: int) -> None:
@@ -357,11 +431,15 @@ def process_buffer(inverter: Inverter, port: serial.Serial, buffer: bytes) -> by
                 continue
             return buffer
 
-        LOGGER.info("Request: slave=%s function=%s", request.slave_addr, request.function)
+        request_frame = buffer[:frame_size]
+        LOGGER.info(format_modbus_request(request))
+        LOGGER.debug("Modbus request raw: %s", request_frame.hex(" "))
         response = build_response(inverter, request)
         if response is not None:
             port.write(response)
-            LOGGER.info("Response: %s", response.hex())
+            parsed_response = ResponseFrame.parse(response).data.value
+            LOGGER.info(format_modbus_response(request, parsed_response))
+            LOGGER.debug("Modbus response raw: %s", response.hex(" "))
 
         buffer = buffer[frame_size:]
 
@@ -440,16 +518,21 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Log returned raw energy counters whenever registers 534/537 are read",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Include raw Modbus request and response frames in the logs",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
+    args = parse_args(sys.argv[1:] if argv is None else argv)
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG if args.debug else logging.INFO,
         format=LOGGER_FORMAT,
         handlers=[logging.StreamHandler(sys.stdout)],
     )
-    args = parse_args(sys.argv[1:] if argv is None else argv)
     run_emulator(
         args.port,
         args.baud,
