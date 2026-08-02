@@ -27,6 +27,9 @@ PROFILE_RANDOM = "random"
 PROFILE_GENERATOR_FIRST = "generator-first"
 ENERGY_TOTAL_ADDRESS = 534
 ENERGY_GENERATOR_ADDRESS = 537
+LOW_NOISE_MODE_ADDRESS = 35
+LOW_NOISE_COMMAND_ADDRESS = 36
+LOW_NOISE_COMMAND_MAGIC = 100
 
 
 def clamp(value: int, minimum: int, maximum: int) -> int:
@@ -90,6 +93,8 @@ class Inverter:
             13: 0x3456,  # Slave MCU version
             14: 0x4567,  # HMI version-2
             15: 0x5678,  # HMI version
+            35: 0,  # Inverter bridge FSW: 0 = 15 kHz, 1 = 20 kHz
+            36: 0,  # Relay self-check status
             598: 2300,  # Grid L1 voltage, 0.1 V
             599: 2300,  # Grid L2 voltage, 0.1 V
             600: 2300,  # Grid L3 voltage, 0.1 V
@@ -239,8 +244,23 @@ class Inverter:
 
     def write_holding_registers(self, start_address: int, values: Iterable[int]) -> None:
         values = list(values)
+
+        # Registers 35 and 36 are read-only in the published map. The inverter
+        # nevertheless uses one exact two-register FC16 write as a command for
+        # changing the bridge switching frequency; 100 is a guard value rather
+        # than a new value for register 36.
+        if (
+            start_address == LOW_NOISE_MODE_ADDRESS
+            and len(values) == 2
+            and values[1] == LOW_NOISE_COMMAND_MAGIC
+        ):
+            self.registers[LOW_NOISE_MODE_ADDRESS] = values[0]
+
         for offset, value in enumerate(values):
-            self.registers[start_address + offset] = to_u16(value)
+            address = start_address + offset
+            if address in (LOW_NOISE_MODE_ADDRESS, LOW_NOISE_COMMAND_ADDRESS):
+                continue
+            self.registers[address] = to_u16(value)
         if start_address == 1080 and len(values) == 2 and values[1] == 0x60:
             self.firmware_upgrade.begin(to_u16(values[0]))
 
