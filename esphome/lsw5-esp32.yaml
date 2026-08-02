@@ -22,6 +22,9 @@ substitutions:
   friendly_name: Inverter
   modbus_controller_id: inverter_modbus_controller
   meter_mqtt_input_timeout: 30s
+  # The Modbus controller runs every 5 seconds. Skipping 11 update cycles polls
+  # slow-changing settings and cumulative counters once per minute instead.
+  slow_modbus_skip_updates: "11"
   # ⚠️⚠️⚠️ CAUTION! UWAGA! ВНИМАНИЕ! ACHTUNG! 注意! ⚠️⚠️⚠️
   # Personal historical-accounting offset. This makes my HA energy sensor line
   # up with existing data from a different inverter. Set to 0.0 unless you are
@@ -769,6 +772,7 @@ sensor:
     id: total_consumption
     register_type: holding
     address: 527
+    skip_updates: ${slow_modbus_skip_updates}
     unit_of_measurement: "kWh"
     device_class: energy
     state_class: "total_increasing"
@@ -839,6 +843,7 @@ sensor:
     id: total_battery_charge
     register_type: holding
     address: 516
+    skip_updates: ${slow_modbus_skip_updates}
     unit_of_measurement: "kWh"
     device_class: energy
     state_class: "total_increasing"
@@ -855,6 +860,7 @@ sensor:
     id: total_battery_discharge
     register_type: holding
     address: 518
+    skip_updates: ${slow_modbus_skip_updates}
     unit_of_measurement: "kWh"
     device_class: energy
     state_class: "total_increasing"
@@ -1076,6 +1082,7 @@ number:
     id: maximum_battery_charge_current
     name: "Battery Charge Current Limit"
     address: 108
+    skip_updates: ${slow_modbus_skip_updates}
     unit_of_measurement: A
     device_class: current
     entity_category: config
@@ -1092,6 +1099,7 @@ number:
     id: maximum_battery_discharge_current
     name: "Battery Discharge Current Limit"
     address: 109
+    skip_updates: ${slow_modbus_skip_updates}
     unit_of_measurement: A
     device_class: current
     entity_category: config
@@ -1116,6 +1124,7 @@ switch:
     register_type: holding
     address: 35
     bitmask: 1
+    skip_updates: ${slow_modbus_skip_updates}
     entity_category: config
     icon: "mdi:volume-low"
     write_lambda: |-
@@ -1127,6 +1136,11 @@ switch:
       // send_raw() appends the Modbus CRC over the whole frame.
       // MCU1 echoes this frame and forwards it unchanged to MCU2.
       id(inverter_modbus).send_raw(mcu2_write);
+
+      auto *controller = id(${modbus_controller_id});
+      auto readback = esphome::modbus_controller::ModbusCommandItem::create_read_command(
+          controller, esphome::modbus::ModbusRegisterType::HOLDING, 35, 1);
+      controller->queue_command(readback);
       return {};
 
   - platform: modbus_controller
@@ -1136,5 +1150,6 @@ switch:
     register_type: holding
     address: 179
     bitmask: 1
+    skip_updates: ${slow_modbus_skip_updates}
     entity_category: config
     icon: "mdi:transmission-tower-off"
