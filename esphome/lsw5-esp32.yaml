@@ -1103,6 +1103,32 @@ number:
     icon: "mdi:battery-charging-low"
 
 switch:
+  # Switching frequency for the inverter bridge. Reading register 35 on its own
+  # is enough, but to write it a special dance is needed: MCU2 only accepts the
+  # [r35, r36] = [mode, 100] command as a single FC16 write of 2 registers.
+  # A normal Modbus write is parsed and reconstructed by MCU1, which loses
+  # this structure, so send the MCU2-form request directly through MCU1's
+  # raw forwarding escape hatch (send to address 0xAA).
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    id: low_noise_mode
+    name: "Low Noise Mode"
+    register_type: holding
+    address: 35
+    bitmask: 1
+    entity_category: config
+    icon: "mdi:volume-low"
+    write_lambda: |-
+      std::vector<uint8_t> mcu2_write = {
+          0xAA, 0x10, 0x00, 0x23, 0x00, 0x02, 0x04,
+          0x00, static_cast<uint8_t>(x ? 1 : 0), 0x00, 0x64,
+      };
+
+      // send_raw() appends the Modbus CRC over the whole frame.
+      // MCU1 echoes this frame and forwards it unchanged to MCU2.
+      id(inverter_modbus).send_raw(mcu2_write);
+      return {};
+
   - platform: modbus_controller
     use_write_multiple: true
     modbus_controller_id: ${modbus_controller_id}
