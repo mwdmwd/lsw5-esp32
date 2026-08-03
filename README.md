@@ -68,6 +68,11 @@ The design files (schematics and PCB layout) are available in this repository.
 | RS485 **A/+**                          |                   | J6 pin 3                      |                                                                             |
 | RS485 **B/-**                          |                   | J6 pin 4                      |                                                                             |
 
+There are two connections to the inverter:
+
+- `GPIO16`/`GPIO17` connect to the inverter's MCU1/HMI through the logger port using the logger carrier's RS232 transceiver.
+- `GPIO21`/`GPIO48`/`GPIO47` drive this board's RS485 transceiver and connect to the inverter's separate Meter-485 port, which is handled directly by MCU2/DSP.
+
 ## Errata
 
 Board revisions refer to manufactured Gerber releases, tagged in Git as `p0`, `p1`, etc. The current KiCad files may already contain changes for the next unreleased revision; those changes are not listed here until a board is manufactured. For example, if the schematic says `p2` but there is no `p2` tag, that revision has not been manufactured yet.

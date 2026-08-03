@@ -148,10 +148,12 @@ mqtt:
             id(total_pv_production_floor_seeded) = true;
 
 uart:
+  # Main RS232 connection to the inverter's MCU1/HMI
   - id: inverter_uart
     baud_rate: 9600
     tx_pin: GPIO17
     rx_pin: GPIO16
+  # Meter-485 connection to the inverter's MCU2/DSP
   - id: meter_uart
     baud_rate: 9600
     rx_pin: GPIO21
