@@ -143,7 +143,10 @@ class Inverter:
     event_interval_seconds: float = 120.0
     catchup_delay_seconds: float = 600.0
     log_energy_reads: bool = False
+    # Logger-facing MCU1 shadow and the minimal internal MCU2 state are
+    # separate: raw passthrough writes do not update an immediate FC03 result.
     registers: dict[int, int] = field(default_factory=dict)
+    mcu2_registers: dict[int, int] = field(default_factory=dict)
     next_event_at: float | None = None
     pending_total_catchups: list[float] = field(default_factory=list)
     firmware_upgrade: FirmwareUpgrade = field(default_factory=FirmwareUpgrade)
@@ -207,8 +210,26 @@ class Inverter:
         set_u32(
             self.registers, ENERGY_GENERATOR_ADDRESS, 10_000
         )  # Total generator production, 0.1 kWh
+        self.mcu2_registers = {
+            LOW_NOISE_MODE_ADDRESS: self.registers[LOW_NOISE_MODE_ADDRESS],
+            LOW_NOISE_COMMAND_ADDRESS: self.registers[LOW_NOISE_COMMAND_ADDRESS],
+        }
 
     def update(self, now: float | None = None) -> None:
+        if (
+            self.registers[LOW_NOISE_MODE_ADDRESS]
+            != self.mcu2_registers[LOW_NOISE_MODE_ADDRESS]
+        ):
+            old_value = self.registers[LOW_NOISE_MODE_ADDRESS]
+            self.registers[LOW_NOISE_MODE_ADDRESS] = self.mcu2_registers[
+                LOW_NOISE_MODE_ADDRESS
+            ]
+            LOGGER.info(
+                "MCU1 refreshed Low Noise shadow: r35 %d -> %d",
+                old_value,
+                self.registers[LOW_NOISE_MODE_ADDRESS],
+            )
+
         # Grid voltages
         for register in (598, 599, 600):
             self.registers[register] = clamp(
@@ -339,12 +360,14 @@ class Inverter:
             and values[1] == LOW_NOISE_COMMAND_MAGIC
             and values[0] in (0, 1)
         ):
-            old_value = self.registers[LOW_NOISE_MODE_ADDRESS]
-            self.registers[LOW_NOISE_MODE_ADDRESS] = values[0]
+            old_value = self.mcu2_registers[LOW_NOISE_MODE_ADDRESS]
+            self.mcu2_registers[LOW_NOISE_MODE_ADDRESS] = values[0]
             LOGGER.info(
-                "MCU2 applied Low Noise command: r35 %d -> %d",
+                "MCU2 applied Low Noise command: r35 %d -> %d; "
+                "MCU1 external shadow remains %d",
                 old_value,
                 values[0],
+                self.registers[LOW_NOISE_MODE_ADDRESS],
             )
             return
 
