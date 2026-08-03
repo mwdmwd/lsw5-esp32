@@ -31,6 +31,7 @@ ENERGY_GENERATOR_ADDRESS = 537
 LOW_NOISE_MODE_ADDRESS = 35
 LOW_NOISE_COMMAND_ADDRESS = 36
 LOW_NOISE_COMMAND_MAGIC = 100
+MCU2_PASSTHROUGH_ADDRESS = 0xAA
 MAX_LOGGED_REGISTER_VALUES = 16
 
 
@@ -319,17 +320,9 @@ class Inverter:
     def write_holding_registers(self, start_address: int, values: Iterable[int]) -> None:
         values = list(values)
 
-        # Registers 35 and 36 are read-only in the published map. The inverter
-        # nevertheless uses one exact two-register FC16 write as a command for
-        # changing the bridge switching frequency; 100 is a guard value rather
-        # than a new value for register 36.
-        if (
-            start_address == LOW_NOISE_MODE_ADDRESS
-            and len(values) == 2
-            and values[1] == LOW_NOISE_COMMAND_MAGIC
-        ):
-            self.registers[LOW_NOISE_MODE_ADDRESS] = values[0]
-
+        # MCU1 has no write handlers for r35/r36. It still ACKs the logger's
+        # FC16 request, but its later reconstructed MCU2 write uses the
+        # unchanged cache values rather than the received command payload.
         for offset, value in enumerate(values):
             address = start_address + offset
             if address in (LOW_NOISE_MODE_ADDRESS, LOW_NOISE_COMMAND_ADDRESS):
@@ -337,6 +330,29 @@ class Inverter:
             self.registers[address] = to_u16(value)
         if start_address == 1080 and len(values) == 2 and values[1] == 0x60:
             self.firmware_upgrade.begin(to_u16(values[0]))
+
+    def write_mcu2_holding_registers(self, start_address: int, values: Iterable[int]) -> None:
+        values = list(values)
+        if (
+            start_address == LOW_NOISE_MODE_ADDRESS
+            and len(values) == 2
+            and values[1] == LOW_NOISE_COMMAND_MAGIC
+            and values[0] in (0, 1)
+        ):
+            old_value = self.registers[LOW_NOISE_MODE_ADDRESS]
+            self.registers[LOW_NOISE_MODE_ADDRESS] = values[0]
+            LOGGER.info(
+                "MCU2 applied Low Noise command: r35 %d -> %d",
+                old_value,
+                values[0],
+            )
+            return
+
+        LOGGER.info(
+            "MCU2 ignored unexpected raw write: start=%d, values=%s",
+            start_address,
+            format_register_values(start_address, values),
+        )
 
     def service_firmware_upgrade(self, port: serial.Serial, now: float | None = None) -> None:
         ready = self.firmware_upgrade.poll_ready(now)
@@ -381,10 +397,10 @@ def parse_request(buffer: bytes):
     return parsed.data.value, frame_size
 
 
-def find_modbus_frame_offset(buffer: bytes) -> int | None:
+def find_modbus_frame_offset(buffer: bytes, inverter_addr: int) -> int | None:
     """Find a CRC-valid request after UART noise without discarding it bytewise."""
     for offset in range(1, len(buffer)):
-        if buffer[offset] not in (0x01, 0xA2):
+        if buffer[offset] not in (inverter_addr, 0xA2, MCU2_PASSTHROUGH_ADDRESS):
             continue
         if offset + 1 >= len(buffer) or buffer[offset + 1] not in (
             FunctionCode.ReadHoldingRegisters,
@@ -420,7 +436,7 @@ def process_buffer(inverter: Inverter, port: serial.Serial, buffer: bytes) -> by
             request, frame_size = parse_request(buffer)
         except ConstructError:
             if len(buffer) > MAX_MODBUS_BUFFER_SIZE:
-                frame_offset = find_modbus_frame_offset(buffer)
+                frame_offset = find_modbus_frame_offset(buffer, inverter.registers.get(1, 1))
                 discard_size = (
                     frame_offset
                     if frame_offset is not None
@@ -432,6 +448,16 @@ def process_buffer(inverter: Inverter, port: serial.Serial, buffer: bytes) -> by
             return buffer
 
         request_frame = buffer[:frame_size]
+        if request.slave_addr == MCU2_PASSTHROUGH_ADDRESS:
+            LOGGER.info("HMI to MCU2 passthrough request: %s", format_modbus_request(request))
+            LOGGER.debug("HMI to MCU2 passthrough request raw: %s", request_frame.hex(" "))
+            # echo
+            port.write(request_frame)
+            if int(request.function) == FunctionCode.PresetMultipleRegisters:
+                inverter.write_mcu2_holding_registers(request.address, request.content.data)
+            buffer = buffer[frame_size:]
+            continue
+
         LOGGER.info(format_modbus_request(request))
         LOGGER.debug("Modbus request raw: %s", request_frame.hex(" "))
         response = build_response(inverter, request)
