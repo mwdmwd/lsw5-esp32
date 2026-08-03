@@ -4,7 +4,7 @@
 
 This is a replacement ESP32-S3 daughterboard for the "LSW-5" *Stick Logger* (FCC ID [2A4FRLSW-5](https://fccid.io/2A4FRLSW-5)).
 
-It replaces the original board, which is based on a [Hi-Flying HF-LPT270](http://www.hi-flying.com/hf-lpt270) [^lpt270] ([BL602](https://en.bouffalolab.com/product/?type=detail&id=1) inside[^lpt270-wasted-potential-rant]). With an ESP32-S3, it enables ESPHome support while keeping the *Stick Logger*'s modern, minimalistic appearance intact[^rs485-hole].
+It replaces the original board, which is based on a [Hi-Flying HF-LPT270](http://www.hi-flying.com/hf-lpt270) [^lpt270] ([BL602](https://en.bouffalolab.com/product/?type=detail&id=1) inside[^lpt270-why-not]). With an ESP32-S3, it enables ESPHome support while keeping the *Stick Logger*'s modern, minimalistic appearance intact[^rs485-hole].
 
 ![Render](img/lsw5-esp32.png)
 
@@ -117,9 +117,8 @@ All other supporting files and tools are licensed under the GNU Affero General P
 ----------
 
 [^lpt270]: https://fccid.io/2ACSVHF-LPT270-0F
-[^lpt270-wasted-potential-rant]: ...along with an unidentified tiny MCU, maybe a PIC clone? Also, what a waste to have a literal 200 MHz RISC-V core with 276 KB of RAM[^lpt270-why-not] already onboard in the WiFi 'can' (a similar 'can' is $2 at qty:1 from Ai-Thinker BTW), and still use a tiny external MCU for *something*. I guess they prefer reusing the software on this external MCU in the Ethernet / LTE *Stick Loggers* over using the most elegant solution and saving a few cents to boot?
 [^rs485-hole]: unless you decide to cut a hole in the case to route out the Meter-485 cable. Or cut a bit of the plastic around the DB-9 plug out and route it there, but there is a risk of forgetting about the additional cable and causing damage when enthusiastically removing the *Stick Logger*. Or route it through the reset button hole.
 [^rs485-isolation]: Added in `p1`, the story is that it would work fine until connecting the RS-485 (then all sorts of weird stuff would happen). I had seen some noise between the `GND`s in the RS-485 port and the RS-232 port, and the fact that they are not electrically connected, so I decided to make an isolated revision. Then it turned out that with 3cb155f6de7685bc65d782d9486902e5723dc495 my p0 board works on the bench, but isolation seems to be a good idea regardless.
 [^rs232]: Through the RS232 transceiver on the carrier board inside the *Stick Logger* which this board plugs into.
 [^usbc]: Recommended to use the USB-C port for programming instead
-[^lpt270-why-not]: If it's so good, then why didn't I use it? Mostly because the software development experience looks bad compared to the ESP32. Also I'm not sure how annoying having the mystery MCU between us and the RS232 port would be.
+[^lpt270-why-not]: The ESP32-S3 was chosen because its software development experience and ESPHome support are substantially better.
