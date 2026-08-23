@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Usage:
 #   ./kicad-viewport.py lsw5-esp32.kicad_pro
 #   ./kicad-viewport.py lsw5-esp32.kicad_pro readme

@@ -110,11 +110,11 @@ A sample [`esphome/lsw5-esp32.yaml`](./esphome/lsw5-esp32.yaml) file is included
 
 ## License
 
-The hardware design files are licensed under the CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S-2.0). See [LICENSE](./LICENSE) for details.
+The hardware design files are licensed under the CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S-2.0). See [LICENSES/CERN-OHL-S-2.0.txt](./LICENSES/CERN-OHL-S-2.0.txt) for details.
 
-The example ESPHome configuration is based on an Apache-2.0-licensed configuration and has been modified for this project. It is distributed under the Apache License, Version 2.0. See [esphome/LICENSE](./esphome/LICENSE) and [esphome/NOTICE](./esphome/NOTICE) for details.
+The example ESPHome configuration is based on an Apache-2.0-licensed configuration and has been modified for this project. It is distributed under the Apache License, Version 2.0. See [LICENSES/Apache-2.0.txt](./LICENSES/Apache-2.0.txt) and [esphome/NOTICE](./esphome/NOTICE) for details.
 
-All other supporting files and tools are licensed under the GNU Affero General Public License Version 3 or, at your option, any later version (AGPL-3.0-or-later). See [fake-inverter/LICENSE](./fake-inverter/LICENSE) for details.
+All other supporting files and tools are licensed under the GNU General Public License Version 3 or, at your option, any later version (GPL-3.0-or-later). See [LICENSES/GPL-3.0.txt](./LICENSES/GPL-3.0.txt) for details.
 
 > [!CAUTION]
 > Please be careful with electricity, always disconnect the *Stick Logger* from the inverter before replacing its internal board, always turn off the inverter and disconnect it from all power sources before (dis)connecting the *Stick Logger*, and so on. I will not be responsible if your warranty is voided, your inverter is damaged, or you get shocked. If you are not sure about something, ask for help from someone who is qualified to work with power electronics.

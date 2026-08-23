@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: GPL-3.0-or-later
 def crc16(
     data: bytes, poly: int, init: int = 0xFFFF, lsb: bool = True, xor_out: int = 0x0000
 ) -> int:
