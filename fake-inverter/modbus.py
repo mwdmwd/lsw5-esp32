@@ -19,7 +19,6 @@ from construct import (
 
 from crc import crc16_modbus
 
-
 # pyright: reportOperatorIssue=false, reportIndexIssue=false
 
 

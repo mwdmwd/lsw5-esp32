@@ -221,9 +221,7 @@ class Inverter:
             != self.mcu2_registers[LOW_NOISE_MODE_ADDRESS]
         ):
             old_value = self.registers[LOW_NOISE_MODE_ADDRESS]
-            self.registers[LOW_NOISE_MODE_ADDRESS] = self.mcu2_registers[
-                LOW_NOISE_MODE_ADDRESS
-            ]
+            self.registers[LOW_NOISE_MODE_ADDRESS] = self.mcu2_registers[LOW_NOISE_MODE_ADDRESS]
             LOGGER.info(
                 "MCU1 refreshed Low Noise shadow: r35 %d -> %d",
                 old_value,
@@ -363,8 +361,7 @@ class Inverter:
             old_value = self.mcu2_registers[LOW_NOISE_MODE_ADDRESS]
             self.mcu2_registers[LOW_NOISE_MODE_ADDRESS] = values[0]
             LOGGER.info(
-                "MCU2 applied Low Noise command: r35 %d -> %d; "
-                "MCU1 external shadow remains %d",
+                "MCU2 applied Low Noise command: r35 %d -> %d; " "MCU1 external shadow remains %d",
                 old_value,
                 values[0],
                 self.registers[LOW_NOISE_MODE_ADDRESS],
