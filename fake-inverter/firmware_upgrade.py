@@ -1,9 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import enum
 import logging
+import tempfile
 import time
 import zlib
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
 
 from crc import crc16_xmodem
 
@@ -42,49 +45,36 @@ class FirmwareImageInfo:
     image_size: int
     payload_size: int
     selectors: bytes
-    expected_crc32: int
-    actual_crc32: int
-    padding_size: int
-
-    @property
-    def valid(self) -> bool:
-        return self.expected_crc32 == self.actual_crc32
+    crc32: int
 
 
 def inspect_firmware_image(block_data: bytes) -> FirmwareImageInfo | None:
-    """Find and validate a Deye image inside the padded XMODEM block stream."""
-    minimum_size = max(DEYE_TRAILER_SIZE, len(block_data) - XMODEM_BLOCK_SIZE + 1)
+    """Validate an aligned Deye image whose trailer is at the exact end."""
+    if len(block_data) < DEYE_TRAILER_SIZE or len(block_data) % XMODEM_BLOCK_SIZE != 0:
+        return None
 
-    for image_size in range(len(block_data), minimum_size - 1, -1):
-        padding = block_data[image_size:]
-        if padding and (padding[0] not in (0x1A, 0xFF) or any(b != padding[0] for b in padding)):
-            continue
+    trailer = block_data[-DEYE_TRAILER_SIZE:]
+    payload_size = int.from_bytes(trailer[3:7], "big")
+    if payload_size + DEYE_TRAILER_SIZE != len(block_data):
+        return None
 
-        trailer_start = image_size - DEYE_TRAILER_SIZE
-        trailer = block_data[trailer_start:image_size]
-        payload_size = int.from_bytes(trailer[3:7], "big")
-        if payload_size + DEYE_TRAILER_SIZE != image_size:
-            continue
+    expected_crc32 = int.from_bytes(trailer[7:11], "big")
+    actual_crc32 = zlib.crc32(block_data[:payload_size]) & 0xFFFFFFFF
+    if expected_crc32 != actual_crc32:
+        return None
 
-        expected_crc32 = int.from_bytes(trailer[7:11], "big")
-        actual_crc32 = zlib.crc32(block_data[:payload_size]) & 0xFFFFFFFF
-        if expected_crc32 != actual_crc32:
-            continue
-
-        return FirmwareImageInfo(
-            image_size=image_size,
-            payload_size=payload_size,
-            selectors=trailer[:3],
-            expected_crc32=expected_crc32,
-            actual_crc32=actual_crc32,
-            padding_size=len(block_data) - image_size,
-        )
-
-    return None
+    return FirmwareImageInfo(
+        image_size=len(block_data),
+        payload_size=payload_size,
+        selectors=trailer[:3],
+        crc32=actual_crc32,
+    )
 
 
 @dataclass
 class FirmwareUpgrade:
+    capture_directory: Path | None = None
+    capture_path: Path | None = field(default=None, init=False)
     phase: UpgradePhase = UpgradePhase.IDLE
     target_id: int | None = None
     expected_block: int = 1
@@ -105,6 +95,16 @@ class FirmwareUpgrade:
         return TARGET_NAMES.get(self.target_id, f"MCU{self.target_id}")
 
     def begin(self, target_id: int, now: float | None = None) -> None:
+        self.abort("superseded")
+        if self.capture_directory is not None:
+            self.capture_directory.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(
+                prefix=f"{datetime.now(UTC):%Y%m%dT%H%M%SZ}-mcu{target_id}-",
+                suffix=".partial.bin",
+                dir=self.capture_directory,
+                delete=False,
+            ) as stream:
+                self.capture_path = Path(stream.name)
         self.phase = UpgradePhase.READY_PENDING
         self.target_id = target_id
         self.expected_block = 1
@@ -115,6 +115,15 @@ class FirmwareUpgrade:
         self.ready_at = (time.monotonic() if now is None else now) + BOOTLOADER_READY_DELAY_SECONDS
         LOGGER.info("Firmware upgrade requested: target=%s command=0x60", self.target_name)
 
+    def abort(self, reason: str = "aborted") -> None:
+        if self.capture_path is not None:
+            LOGGER.info(
+                "Firmware transfer ended (%s); partial image: %s", reason, self.capture_path
+            )
+            self.capture_path = None
+        self.phase = UpgradePhase.IDLE
+        self.ready_at = None
+
     def poll_ready(self, now: float | None = None) -> bytes | None:
         if self.phase != UpgradePhase.READY_PENDING or self.ready_at is None:
             return None
@@ -123,7 +132,7 @@ class FirmwareUpgrade:
 
         self.phase = UpgradePhase.RECEIVING
         self.ready_at = None
-        LOGGER.info("Firmware bootloader ready: sending XMODEM CRC request 'C'")
+        LOGGER.info("Firmware receiver ready: sending XMODEM CRC request 'C'")
         return b"C"
 
     def consume(self, buffer: bytes) -> tuple[bytes, list[bytes]]:
@@ -131,6 +140,9 @@ class FirmwareUpgrade:
         replies: list[bytes] = []
 
         while self.active and buffer:
+            # A request can be split after its slave byte by the USB UART.
+            if len(buffer) == 1 and buffer[0] in (0x01, 0xA2):
+                break
             # A Modbus request means the logger left or never entered XMODEM.
             # Leave it for the normal parser, another activation can restart the upgrade.
             if (
@@ -143,12 +155,18 @@ class FirmwareUpgrade:
                     0x10,
                 )
             ):
-                self.phase = UpgradePhase.IDLE
+                self.abort("modbus-resumed")
                 return buffer, replies
+
+            if buffer[0] == 0x18:  # XMODEM CAN
+                self.abort("cancelled")
+                return buffer[1:].lstrip(b"\x18"), replies
 
             if buffer[0] == XMODEM_EOT:
                 buffer = buffer[1:]
-                self._finish()
+                reply = self._finish()
+                if reply is not None:
+                    replies.append(bytes((reply,)))
                 continue
 
             if buffer[0] != XMODEM_STX:
@@ -179,6 +197,10 @@ class FirmwareUpgrade:
                 continue
 
             if block_number == self.expected_block:
+                if self.capture_path is not None:
+                    # Close each accepted block before ACK; retries are not appended.
+                    with self.capture_path.open("ab") as stream:
+                        stream.write(payload)
                 self.block_data.extend(payload)
                 self.blocks_received += 1
                 self.expected_block = (self.expected_block + 1) & 0xFF
@@ -190,7 +212,7 @@ class FirmwareUpgrade:
                         len(self.block_data),
                     )
                 replies.append(bytes((XMODEM_ACK,)))
-            elif block_number == ((self.expected_block - 1) & 0xFF):
+            elif self.blocks_received and block_number == ((self.expected_block - 1) & 0xFF):
                 # The logger missed our ACK and retransmitted the previous block.
                 LOGGER.info("ACKing duplicate XMODEM block %d", block_number)
                 replies.append(bytes((XMODEM_ACK,)))
@@ -204,31 +226,39 @@ class FirmwareUpgrade:
 
         return buffer, replies
 
-    def _finish(self) -> None:
+    def _finish(self) -> int | None:
         self.phase = UpgradePhase.COMPLETE
         self.ready_at = None
         self.image_info = inspect_firmware_image(bytes(self.block_data))
+        if self.capture_path is not None:
+            suffix = ".bin" if self.image_info is not None else ".rejected.bin"
+            destination = self.capture_path.with_name(
+                self.capture_path.name.removesuffix(".partial.bin") + suffix
+            )
+            self.capture_path.rename(destination)
+            LOGGER.info("Firmware saved to %s", destination)
+            self.capture_path = None
 
         if self.image_info is None:
             self.image = bytes(self.block_data)
             LOGGER.warning(
-                "Firmware transfer complete but Deye trailer validation failed: "
-                "target=%s blocks=%d padded_bytes=%d",
+                "Firmware image rejected after EOT: Deye trailer validation failed: "
+                "target=%s blocks=%d image_bytes=%d",
                 self.target_name,
                 self.blocks_received,
                 len(self.block_data),
             )
-            return
+            return XMODEM_NAK
 
-        self.image = bytes(self.block_data[: self.image_info.image_size])
+        self.image = bytes(self.block_data)
         LOGGER.info(
-            "Firmware upgrade complete: target=%s blocks=%d image_bytes=%d "
-            "payload_bytes=%d selectors=%s crc32=%08x padding=%d",
+            "External firmware transfer complete: target=%s blocks=%d image_bytes=%d "
+            "payload_bytes=%d selectors=%s crc32=%08x",
             self.target_name,
             self.blocks_received,
             self.image_info.image_size,
             self.image_info.payload_size,
             self.image_info.selectors.hex(),
-            self.image_info.actual_crc32,
-            self.image_info.padding_size,
+            self.image_info.crc32,
         )
+        return XMODEM_ACK if self.target_id == 2 else None

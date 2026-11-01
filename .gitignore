@@ -23,3 +23,7 @@ fp-info-cache
 !/img/**
 
 __pycache__/
+
+/fake-inverter/state.json
+/fake-inverter/.state.json.*
+/fake-inverter/captures/
