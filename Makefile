@@ -52,3 +52,8 @@ format-check:
 	$(if $(strip $(CXX_SOURCES)),$(CLANG_FORMAT) --dry-run --Werror $(CXX_SOURCES))
 	python3 tools/format-esphome-lambdas.py --check --clang-format "$(CLANG_FORMAT)" $(ESPHOME_CONFIGS)
 	$(RUFF) format --check --line-length 100 $(PYTHON_SOURCES)
+
+.PHONY: check
+check: format-check
+	./esphome/tests/host/run.sh
+	python3 -m unittest discover -s fake-inverter

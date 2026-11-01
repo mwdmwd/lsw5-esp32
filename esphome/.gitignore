@@ -1,0 +1,3 @@
+# ESPHome's generated build tree and local credentials
+/.esphome/
+/secrets.yaml

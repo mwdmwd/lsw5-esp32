@@ -31,6 +31,12 @@ substitutions:
   # me or you enjoy corrupting your long-term statistics.
   solar_production_offset_kwh: 24161.9
 
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [deye_firmware_upgrade]
+
 globals:
   # Highest Total PV Production published during this boot. Seeded from the
   # retained MQTT state topic so normal monotonic filtering does not write NVS.
@@ -115,6 +121,8 @@ ota:
     password: !secret ota.password
 
 wifi:
+  # Losing Wi-Fi must not reboot the ESP32 during an inverter update.
+  reboot_timeout: 0s
   ssid: !secret wifi.ssid
   password: !secret wifi.password
   fast_connect: true
@@ -129,12 +137,25 @@ wifi:
 web_server:
   local: true
 
+# Adds /firmware to the ESPHome web server.
+# Uploads are checked in PSRAM. Compare the displayed SHA-256 before starting
+# a transfer; only then is normal polling paused.
+deye_firmware_upgrade:
+  id: deye_firmware_upgrade_component
+  uart_id: inverter_uart
+  modbus_id: inverter_modbus
+  modbus_controller_id: inverter_modbus_controller
+  max_firmware_size: 2097152 B # 2 MiB
+
 captive_portal:
 
 mqtt:
   broker: 192.168.1.10
   discovery: true
-  reboot_timeout: 2min
+  # A broker outage must not reset the ESP32 in the middle of an inverter update.
+  reboot_timeout: 0s
+  # Enqueue publishes instead of blocking the UART-driving main loop.
+  idf_send_async: true
   birth_message:
     topic: ${name}/availability
     payload: online

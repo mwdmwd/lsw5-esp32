@@ -25,6 +25,7 @@ It replaces the original board, which is based on a [Hi-Flying HF-LPT270](http:/
   * One isolated RS-485 port is present, but it could *potentially* be used for both meter emulation and BMS communication by connecting those to the same bus and configuring addresses appropriately; the Deye DSP firmware is hardcoded to use `1` for the "external CT" meter and `2` for the "Grid Tie Meter2" so these addresses are not available for BMS use. Unsure about address `0`.
     * You could definitely choose to use it *only* for BMS communication, with projects like [esphome-jk-bms](https://github.com/syssi/esphome-jk-bms)
 * **LEDs**: on-board status LEDs (NET, RDY, COM) matching the translucent windows in the stock case mapped to ESP32 GPIOs.
+* **Inverter firmware upgrades** from the ESPHome web interface.
 
 ## Hardware
 
@@ -103,10 +104,23 @@ Errata are listed by the newest affected revision. Older revisions also inherit 
 
 A sample [`esphome/lsw5-esp32.yaml`](./esphome/lsw5-esp32.yaml) file is included in this repository. It serves as a starting point, illustrating the correct pin mappings for this specific board. It includes basic MQTT setup and RS-485 configuration for external meter emulation with source data over MQTT, as well as LED support.
 
+Tested with ESPHome 2026.6.2 and ESP-IDF. See [host tests](esphome/tests/host/README.md) for build dependencies.
+
 > [!NOTE]
 > The inverter polls the RS-485 meter every 125 ms, except every 10th attempt which is delayed by 125 ms as the inverter tries to write `float32(0.0)` to register 286 on device 0xab. I have not been able to identify the reason / meaning of this.
 >
 > You should aim to keep the data in your emulator as fresh as possible to minimize over/undershooting of the *Zero Export to Grid* feature under meter emulation.
+
+### Inverter firmware upgrades
+
+Open `http://<device-address>/firmware`, select **MCU1/HMI** or **MCU2/DSP**, and upload the appropriate `.bin`. The file stays in PSRAM while its alignment and Deye length/CRC32 trailer are checked. Compare the displayed SHA-256 with `sha256sum`, then click **Start inverter transfer**.
+
+Transfers take several minutes at 9600 baud and pause normal polling. **External transfer complete** confirms delivery to the HMI; DSP programming takes additional time. The sender cannot verify that either processor booted successfully. See [the upgrade protocol](fake-inverter/FIRMWARE-UPGRADE.md).
+
+> [!WARNING]
+> Use an image for the correct model. C059 accepts up to 500 KiB, but the DSP updater's application range is only **480 KiB**. The uploader checks file integrity, not model compatibility or target capacity.
+>
+> Do not interrupt power, restart the ESP32, or use ESPHome OTA during a transfer. Keep the example's disabled network reboot timeouts and asynchronous MQTT publishing. Protect the web server on untrusted networks.
 
 ## Source formatting
 
@@ -118,7 +132,7 @@ The hardware design files are licensed under the CERN Open Hardware Licence Vers
 
 The example ESPHome configuration is based on an Apache-2.0-licensed configuration and has been modified for this project. It is distributed under the Apache License, Version 2.0. See [LICENSES/Apache-2.0.txt](./LICENSES/Apache-2.0.txt) and [esphome/NOTICE](./esphome/NOTICE) for details.
 
-All other supporting files and tools are licensed under the GNU General Public License Version 3 or, at your option, any later version (GPL-3.0-or-later). See [LICENSES/GPL-3.0.txt](./LICENSES/GPL-3.0.txt) for details.
+All other supporting files and tools are licensed under the GNU General Public License Version 3 or, at your option, any later version (GPL-3.0-or-later). See [LICENSES/GPL-3.0-or-later.txt](./LICENSES/GPL-3.0-or-later.txt) for details.
 
 > [!CAUTION]
 > Please be careful with electricity, always disconnect the *Stick Logger* from the inverter before replacing its internal board, always turn off the inverter and disconnect it from all power sources before (dis)connecting the *Stick Logger*, and so on. I will not be responsible if your warranty is voided, your inverter is damaged, or you get shocked. If you are not sure about something, ask for help from someone who is qualified to work with power electronics.
