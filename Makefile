@@ -3,6 +3,12 @@ PCB := $(PROJECT:.kicad_pro=.kicad_pcb)
 RENDER_OUT := img/lsw5-esp32.png
 SHADOW_ALPHA := 0
 
+CLANG_FORMAT ?= clang-format
+RUFF ?= ruff
+CXX_SOURCES = $(shell git ls-files '*.c' '*.cc' '*.cpp' '*.h' '*.hpp')
+PYTHON_SOURCES = $(shell git ls-files '*.py')
+ESPHOME_CONFIGS = $(shell git ls-files 'esphome/*.yaml' 'esphome/*.yml')
+
 .PHONY: render
 render: $(RENDER_OUT)
 
@@ -34,3 +40,15 @@ $(RENDER_OUT): $(PCB) $(PROJECT) tools/kicad-viewport.py Makefile
 		"$@"
 
 	pngquant --force --speed 1 --quality 80-90 --output "$@" "$@"
+
+.PHONY: format
+format:
+	$(if $(strip $(CXX_SOURCES)),$(CLANG_FORMAT) -i $(CXX_SOURCES))
+	python3 tools/format-esphome-lambdas.py --clang-format "$(CLANG_FORMAT)" $(ESPHOME_CONFIGS)
+	$(RUFF) format --line-length 100 $(PYTHON_SOURCES)
+
+.PHONY: format-check
+format-check:
+	$(if $(strip $(CXX_SOURCES)),$(CLANG_FORMAT) --dry-run --Werror $(CXX_SOURCES))
+	python3 tools/format-esphome-lambdas.py --check --clang-format "$(CLANG_FORMAT)" $(ESPHOME_CONFIGS)
+	$(RUFF) format --check --line-length 100 $(PYTHON_SOURCES)

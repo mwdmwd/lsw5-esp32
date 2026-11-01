@@ -61,11 +61,20 @@ esphome:
           int uart_num = id(inverter_uart).get_hw_serial_number();
           int signal_idx = -1;
 
-          switch(uart_num) {
-            case 0: signal_idx = U0TXD_OUT_IDX; break;
-            case 1: signal_idx = U1TXD_OUT_IDX; break;
-            case 2: signal_idx = U2TXD_OUT_IDX; break;
-            default: ESP_LOGE("lambda", "What, UART is not hardware backed!?"); return;
+          switch(uart_num)
+          {
+              case 0:
+                  signal_idx = U0TXD_OUT_IDX;
+                  break;
+              case 1:
+                  signal_idx = U1TXD_OUT_IDX;
+                  break;
+              case 2:
+                  signal_idx = U2TXD_OUT_IDX;
+                  break;
+              default:
+                  ESP_LOGE("lambda", "What, UART is not hardware backed!?");
+                  return;
           }
 
           gpio_reset_pin(uart_led_pin);
@@ -137,16 +146,19 @@ mqtt:
       then:
         - lambda: |-
             auto parsed = parse_number<float>(x);
-            if (!parsed.has_value() || isnan(parsed.value()) || parsed.value() < 0.0f) {
-              ESP_LOGW("total_pv_production", "Ignoring invalid retained Total PV Production floor: %s", x.c_str());
-              return;
+            if(!parsed.has_value() || isnan(parsed.value()) || parsed.value() < 0.0f)
+            {
+                ESP_LOGW("total_pv_production", "Ignoring invalid retained Total PV Production floor: %s",
+                         x.c_str());
+                return;
             }
 
-            const float rounded = roundf(parsed.value() * 10.0f) / 10.0f;
+            float const rounded = roundf(parsed.value() * 10.0f) / 10.0f;
             auto &floor = id(total_pv_production_floor_kwh);
-            if (isnan(floor) || rounded > floor) {
-              floor = rounded;
-              ESP_LOGI("total_pv_production", "Loaded Total PV Production floor from MQTT: %.1f kWh", floor);
+            if(isnan(floor) || rounded > floor)
+            {
+                floor = rounded;
+                ESP_LOGI("total_pv_production", "Loaded Total PV Production floor from MQTT: %.1f kWh", floor);
             }
             id(total_pv_production_floor_seeded) = true;
 
@@ -222,31 +234,36 @@ modbus_server:
         value_type: FP32
         read_lambda: !lambda |-
           auto value = id(meter_grid_power_ph1).state;
-          if (!id(meter_grid_power_ph1).has_state() || isnan(value)) return 0.0f;
+          if(!id(meter_grid_power_ph1).has_state() || isnan(value))
+              return 0.0f;
           return value * 1000.0f; // kW to W
       - address: 14
         value_type: FP32
         read_lambda: !lambda |-
           auto value = id(meter_grid_power_ph2).state;
-          if (!id(meter_grid_power_ph2).has_state() || isnan(value)) return 0.0f;
+          if(!id(meter_grid_power_ph2).has_state() || isnan(value))
+              return 0.0f;
           return value * 1000.0f; // kW to W
       - address: 16
         value_type: FP32
         read_lambda: !lambda |-
           auto value = id(meter_grid_power_ph3).state;
-          if (!id(meter_grid_power_ph3).has_state() || isnan(value)) return 0.0f;
+          if(!id(meter_grid_power_ph3).has_state() || isnan(value))
+              return 0.0f;
           return value * 1000.0f; // kW to W
       - address: 72
         value_type: FP32
         read_lambda: !lambda |-
           auto value = id(meter_grid_import_kwh).state;
-          if (!id(meter_grid_import_kwh).has_state() || isnan(value)) return 0.0f;
+          if(!id(meter_grid_import_kwh).has_state() || isnan(value))
+              return 0.0f;
           return value;
       - address: 74
         value_type: FP32
         read_lambda: !lambda |-
           auto value = id(meter_grid_export_kwh).state;
-          if (!id(meter_grid_export_kwh).has_state() || isnan(value)) return 0.0f;
+          if(!id(meter_grid_export_kwh).has_state() || isnan(value))
+              return 0.0f;
           return value;
   - id: unk_modbus_server
     modbus_id: meter_modbus
@@ -254,9 +271,12 @@ modbus_server:
     registers:
       - address: 286 # 0x11e
         value_type: FP32
-        read_lambda: !lambda ESP_LOGD("modbus", "Read unknown register"); return 0;
+        read_lambda: !lambda |-
+          ESP_LOGD("modbus", "Read unknown register");
+          return 0;
         write_lambda: !lambda |-
-          ESP_LOGD("modbus", "Write unknown register: %f", x); return true;
+          ESP_LOGD("modbus", "Write unknown register: %f", x);
+          return true;
 
 text_sensor:
   - id: fast_power # not yet used but the goal would be to refresh this at 8 Hz instead of ⅕ Hz
@@ -521,7 +541,8 @@ sensor:
     lambda: |-
       auto pv1 = id(pv1_power).state;
       auto pv2 = id(pv2_power).state;
-      if(isnan(pv1) || isnan(pv2)) return {};
+      if(isnan(pv1) || isnan(pv2))
+          return {};
       return pv1 + pv2;
     state_topic: ${name}/generation_power
     discovery: false
@@ -545,32 +566,42 @@ sensor:
       - offset: ${solar_production_offset_kwh}
       - lambda: |-
           auto generator_production = id(total_generator_production).state;
-          if (!id(total_generator_production).has_state() || isnan(generator_production) || generator_production <= 0.0f) {
-            return {};
+          if(!id(total_generator_production).has_state() ||
+             isnan(generator_production) ||
+             generator_production <= 0.0f)
+          {
+              return {};
           }
           return x - generator_production;
       - min:
           window_size: 3 # prevent spike on readout
           send_every: 1
       - lambda: |-
-          if (isnan(x)) {
-            return {};
+          if(isnan(x))
+          {
+              return {};
           }
-          const float rounded = roundf(x * 10.0f) / 10.0f;
+          float const rounded = roundf(x * 10.0f) / 10.0f;
           auto &floor = id(total_pv_production_floor_kwh);
 
-          if (!id(total_pv_production_floor_seeded)) {
-            ESP_LOGW("total_pv_production", "Suppressing Total PV Production until retained MQTT floor is loaded: %.1f kWh", rounded);
-            return {};
+          if(!id(total_pv_production_floor_seeded))
+          {
+              ESP_LOGW("total_pv_production",
+                       "Suppressing Total PV Production until retained MQTT floor is loaded: %.1f kWh",
+                       rounded);
+              return {};
           }
 
-          if (isnan(floor) || floor < 0.0f || rounded >= floor) {
-            if (isnan(floor) || rounded > floor) {
-              floor = rounded;
-            }
-            return rounded;
+          if(isnan(floor) || floor < 0.0f || rounded >= floor)
+          {
+              if(isnan(floor) || rounded > floor)
+              {
+                  floor = rounded;
+              }
+              return rounded;
           }
-          ESP_LOGW("total_pv_production", "Suppressing non-monotonic Total PV Production: %.1f -> %.1f kWh", floor, rounded);
+          ESP_LOGW("total_pv_production", "Suppressing non-monotonic Total PV Production: %.1f -> %.1f kWh",
+                   floor, rounded);
           return {};
     icon: "mdi:solar-power"
     state_topic: ${name}/generated_energy
@@ -1129,8 +1160,7 @@ switch:
     icon: "mdi:volume-low"
     write_lambda: |-
       std::vector<uint8_t> mcu2_write = {
-          0xAA, 0x10, 0x00, 0x23, 0x00, 0x02, 0x04,
-          0x00, static_cast<uint8_t>(x ? 1 : 0), 0x00, 0x64,
+          0xAA, 0x10, 0x00, 0x23, 0x00, 0x02, 0x04, 0x00, static_cast<uint8_t>(x ? 1 : 0), 0x00, 0x64,
       };
 
       // send_raw() appends the Modbus CRC over the whole frame.

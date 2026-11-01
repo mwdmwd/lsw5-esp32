@@ -108,6 +108,10 @@ A sample [`esphome/lsw5-esp32.yaml`](./esphome/lsw5-esp32.yaml) file is included
 >
 > You should aim to keep the data in your emulator as fresh as possible to minimize over/undershooting of the *Zero Export to Grid* feature under meter emulation.
 
+## Source formatting
+
+Use `make format` or `make format-check`. Requires clang-format, Ruff, and Python 3 with PyYAML; C++ lambdas in the ESPHome YAML are included.
+
 ## License
 
 The hardware design files are licensed under the CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S-2.0). See [LICENSES/CERN-OHL-S-2.0.txt](./LICENSES/CERN-OHL-S-2.0.txt) for details.
