@@ -25,6 +25,7 @@ It replaces the original board, which is based on a [Hi-Flying HF-LPT270](http:/
   * One isolated RS-485 port is present, but it could *potentially* be used for both meter emulation and BMS communication by connecting those to the same bus and configuring addresses appropriately; the Deye DSP firmware is hardcoded to use `1` for the "external CT" meter and `2` for the "Grid Tie Meter2" so these addresses are not available for BMS use. Unsure about address `0`.
     * You could definitely choose to use it *only* for BMS communication, with projects like [esphome-jk-bms](https://github.com/syssi/esphome-jk-bms)
 * **LEDs**: on-board status LEDs (NET, RDY, COM) matching the translucent windows in the stock case mapped to ESP32 GPIOs.
+* **Inverter event monitoring**: remembers warnings/faults and captures voltage/power readings when something changes.
 * **Inverter firmware upgrades** from the ESPHome web interface.
 
 ## Hardware
@@ -121,6 +122,12 @@ Transfers take several minutes at 9600 baud and pause normal polling. **External
 > Use an image for the correct model. C059 accepts up to 500 KiB, but the DSP updater's application range is only **480 KiB**. The uploader checks file integrity, not model compatibility or target capacity.
 >
 > Do not interrupt power, restart the ESP32, or use ESPHome OTA during a transfer. Keep the example's disabled network reboot timeouts and asynchronous MQTT publishing. Protect the web server on untrusted networks.
+
+### Grid/EPS event monitoring
+
+The event monitor reads run state (500) and events (551–559) every second, alongside the five-second telemetry. It remembers warning/fault bits until ESP32 restart and reads voltages/powers (587–655) after a change. Timestamps are ESP32 uptime. `v=1` means those extra readings arrived; `v=0` means the read was interrupted or timed out. The inverter may already have recovered by then.
+
+C059 refreshes the DSP cache about every two seconds, so shorter events can still be missed. Its own Fault Log records faults only in run state 4 and warnings in state 3. Increase `inverter_modbus_turnaround_time` if requests time out. The [fake inverter](fake-inverter/README.md) can simulate a short EPS dropout.
 
 ## Source formatting
 

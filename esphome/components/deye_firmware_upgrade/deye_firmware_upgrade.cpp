@@ -604,6 +604,8 @@ void DeyeFirmwareUpgrade::loop()
 
 void DeyeFirmwareUpgrade::begin_transport_(uint32_t now)
 {
+	if(this->event_monitor_ != nullptr)
+		this->event_monitor_->stop_poller();
 	this->modbus_controller_->stop_poller();
 	this->transport_phase_ = TransportPhase::QUIESCING;
 	this->phase_deadline_ = now + QUIESCE_TIMEOUT_MS;
@@ -650,6 +652,8 @@ void DeyeFirmwareUpgrade::restore_bus_()
 		this->bus_owned_ = false;
 	}
 	this->modbus_controller_->start_poller();
+	if(this->event_monitor_ != nullptr)
+		this->event_monitor_->start_poller();
 }
 
 void DeyeFirmwareUpgrade::drain_uart_()

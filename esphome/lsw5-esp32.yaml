@@ -22,6 +22,8 @@ substitutions:
   friendly_name: Inverter
   modbus_controller_id: inverter_modbus_controller
   meter_mqtt_input_timeout: 30s
+  # About 55 ms between replies and new requests, including the RTU frame gap.
+  inverter_modbus_turnaround_time: 50ms
   # The Modbus controller runs every 5 seconds. Skipping 11 update cycles polls
   # slow-changing settings and cumulative counters once per minute instead.
   slow_modbus_skip_updates: "11"
@@ -35,7 +37,7 @@ external_components:
   - source:
       type: local
       path: components
-    components: [deye_firmware_upgrade]
+    components: [priority_modbus_controller, deye_event_monitor, deye_firmware_upgrade]
 
 globals:
   # Highest Total PV Production published during this boot. Seeded from the
@@ -145,6 +147,7 @@ deye_firmware_upgrade:
   uart_id: inverter_uart
   modbus_id: inverter_modbus
   modbus_controller_id: inverter_modbus_controller
+  event_monitor_id: deye_event_monitor_component
   max_firmware_size: 2097152 B # 2 MiB
 
 captive_portal:
@@ -236,15 +239,54 @@ modbus:
   - id: inverter_modbus
     uart_id: inverter_uart
     role: client
+    turnaround_time: ${inverter_modbus_turnaround_time}
   - id: meter_modbus
     uart_id: meter_uart
     role: server
 
-modbus_controller:
+# Required by the sensor platforms; the actual client is the subclass below.
+modbus_controller: []
+
+priority_modbus_controller:
   - id: inverter_modbus_controller
     modbus_id: inverter_modbus
     update_interval: 5s
     address: 1
+
+# Read r500 and r551..r559 each second, then r587..r655 on a change.
+# The two probes cost 46 wire bytes/s (~48 ms at 9600 8N1), plus two turnaround
+# gaps (~110 ms at the default 50 ms setting, including RTU gaps).
+# The HMI cache refreshes about every two seconds, so short events can be missed.
+deye_event_monitor:
+  id: deye_event_monitor_component
+  modbus_controller_id: ${modbus_controller_id}
+  update_interval: 1s
+  event_sequence:
+    name: "Inverter Event Sequence"
+  trip_data:
+    name: "Inverter Trip Detail"
+  relay_bitmap:
+    name: "Inverter Relay Bitmap"
+  operating_state:
+    name: "Inverter Operating State"
+  current_warnings:
+    name: "Inverter Current Warnings"
+  current_faults:
+    name: "Inverter Current Faults"
+  latched_warnings:
+    name: "Inverter Latched Warnings"
+  latched_faults:
+    name: "Inverter Latched Faults"
+  last_event:
+    name: "Inverter Last Event Snapshot"
+  any_fault:
+    name: "Inverter Fault Active"
+  inverter_relay:
+    name: "Inverter Output Relay"
+  grid_relay:
+    name: "Inverter Grid Relay"
+  generator_relay:
+    name: "Inverter Generator Relay"
 
 modbus_server:
   - id: meter_modbus_server
@@ -1204,3 +1246,12 @@ switch:
     skip_updates: ${slow_modbus_skip_updates}
     entity_category: config
     icon: "mdi:transmission-tower-off"
+
+button:
+  - platform: template
+    name: "Clear Inverter Event Latches"
+    entity_category: config
+    icon: "mdi:notification-clear-all"
+    on_press:
+      - lambda: |-
+          id(deye_event_monitor_component).clear_latches();

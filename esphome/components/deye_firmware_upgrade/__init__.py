@@ -19,6 +19,7 @@ AUTO_LOAD = ["sha256"]
 MULTI_CONF = False
 
 CONF_MAX_FIRMWARE_SIZE = "max_firmware_size"
+CONF_EVENT_MONITOR_ID = "event_monitor_id"
 CONF_MODBUS_ID = "modbus_id"
 CONF_MODBUS_CONTROLLER_ID = "modbus_controller_id"
 
@@ -35,6 +36,7 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(): cv.declare_id(DeyeFirmwareUpgrade),
             cv.Required(CONF_MODBUS_ID): cv.use_id(modbus.Modbus),
             cv.Required(CONF_MODBUS_CONTROLLER_ID): cv.use_id(modbus_controller.ModbusController),
+            cv.Optional(CONF_EVENT_MONITOR_ID): cv.use_id(cg.PollingComponent),
             cv.Optional(CONF_MAX_FIRMWARE_SIZE, default="2097152 B"): cv.All(
                 cv.validate_bytes, cv.Range(min=1024)
             ),
@@ -65,6 +67,9 @@ async def to_code(config):
     controller_var = await cg.get_variable(config[CONF_MODBUS_CONTROLLER_ID])
     cg.add(var.set_modbus(modbus_var))
     cg.add(var.set_modbus_controller(controller_var))
+    if event_monitor_config := config.get(CONF_EVENT_MONITOR_ID):
+        event_monitor = await cg.get_variable(event_monitor_config)
+        cg.add(var.set_event_monitor(event_monitor))
     cg.add(var.set_max_firmware_size(config[CONF_MAX_FIRMWARE_SIZE]))
 
     # Required for multipart uploads in ESPHome's ESP-IDF web server.

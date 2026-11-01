@@ -40,11 +40,13 @@ struct Rig
 {
 	modbus::Modbus bus;
 	modbus_controller::ModbusController controller;
+	PollingComponent monitor;
 	DeyeFirmwareUpgrade u;
 	Rig()
 	{
 		u.set_modbus(&bus);
 		u.set_modbus_controller(&controller);
+		u.set_event_monitor(&monitor);
 	}
 	void begin(uint8_t target = 1, size_t blocks = 1)
 	{
@@ -130,11 +132,11 @@ TEST(quiesce_timeout_does_not_activate)
 	r.bus.blocked = true;
 	r.begin();
 	CHECK(r.u.tx.empty());
-	CHECK(!r.controller.polling);
+	CHECK(!r.controller.polling && !r.monitor.polling);
 	test_now += 60000;
 	r.u.loop();
 	CHECK(r.u.snapshot().state == UpgradeState::ERROR && r.u.tx.empty());
-	CHECK(r.controller.polling && r.bus.enabled);
+	CHECK(r.controller.polling && r.monitor.polling && r.bus.enabled);
 }
 TEST(http_upload_hmi_transfer_and_replay_rejection)
 {
@@ -155,7 +157,7 @@ TEST(http_upload_hmi_transfer_and_replay_rejection)
 	handler.handleRequest(&req);
 	CHECK(req.response->status == 200 && r.u.snapshot().state == UpgradeState::QUEUED);
 	r.u.loop();
-	CHECK(!r.bus.enabled && !r.controller.polling);
+	CHECK(!r.bus.enabled && !r.controller.polling && !r.monitor.polling);
 	CHECK(r.u.tx.size() == 13 && r.u.tx[8] == 1);
 	CHECK(crc16_modbus(r.u.tx.data(), 11) == (r.u.tx[11] | uint16_t(r.u.tx[12]) << 8));
 	r.ready();
@@ -166,7 +168,7 @@ TEST(http_upload_hmi_transfer_and_replay_rejection)
 	test_now += 10000; // HMI may reset without acknowledging EOT.
 	r.u.loop();
 	CHECK(r.u.snapshot().state == UpgradeState::COMPLETE);
-	CHECK(r.bus.enabled && r.controller.enabled && r.controller.polling);
+	CHECK(r.bus.enabled && r.controller.enabled && r.controller.polling && r.monitor.polling);
 	CHECK(!start(r.u, staged));
 }
 
@@ -223,7 +225,7 @@ TEST(receiver_cancellation_restores_bus_and_requires_fresh_confirmation)
 	r.u.rx.push_back(0x18);
 	r.u.loop();
 	CHECK(r.u.snapshot().state == UpgradeState::ERROR);
-	CHECK(r.bus.enabled && r.controller.polling);
+	CHECK(r.bus.enabled && r.controller.polling && r.monitor.polling);
 	CHECK(!start(r.u, old));
 	CHECK(start(r.u, r.u.snapshot()));
 }
@@ -318,7 +320,7 @@ TEST(activation_timeout_restores_polling_without_sending_image)
 	}
 	CHECK(r.u.snapshot().state == UpgradeState::ERROR);
 	CHECK(r.u.tx.size() == 5 * 13);
-	CHECK(r.bus.enabled && r.controller.enabled && r.controller.polling);
+	CHECK(r.bus.enabled && r.controller.enabled && r.controller.polling && r.monitor.polling);
 }
 
 TEST(block_retry_exhaustion_restores_polling_without_eot)
@@ -340,5 +342,5 @@ TEST(block_retry_exhaustion_restores_polling_without_eot)
 	CHECK(r.u.snapshot().state == UpgradeState::ERROR);
 	CHECK(r.u.snapshot().acknowledged_blocks == 0);
 	CHECK(r.u.tx.size() == 13 + 11 * XMODEM_PACKET_SIZE);
-	CHECK(r.bus.enabled && r.controller.enabled && r.controller.polling);
+	CHECK(r.bus.enabled && r.controller.enabled && r.controller.polling && r.monitor.polling);
 }

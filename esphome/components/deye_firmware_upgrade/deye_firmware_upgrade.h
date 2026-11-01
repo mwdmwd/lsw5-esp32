@@ -72,6 +72,10 @@ public:
 	{
 		this->modbus_controller_ = controller;
 	}
+	void set_event_monitor(PollingComponent *monitor)
+	{
+		this->event_monitor_ = monitor;
+	}
 	void set_max_firmware_size(size_t max_firmware_size)
 	{
 		this->max_firmware_size_ = max_firmware_size;
@@ -167,6 +171,7 @@ protected:
 
 	modbus::Modbus *modbus_{ nullptr };
 	modbus_controller::ModbusController *modbus_controller_{ nullptr };
+	PollingComponent *event_monitor_{ nullptr };
 	TransportPhase transport_phase_{ TransportPhase::IDLE };
 	uint32_t phase_deadline_{ 0 };
 	bool bus_owned_{ false };
