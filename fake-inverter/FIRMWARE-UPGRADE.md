@@ -56,6 +56,8 @@ After EOT, C059 checks the image's length and CRC32:
 
 The fake inverter checks and saves incoming blocks, handles duplicates, and keeps partial transfers. It does not simulate flash programming or HMI-to-DSP transfer. Modbus resumes afterward; version registers stay unchanged.
 
-LSW5 also checks filename metadata; use a short name such as `MCU2.bin`. Cloud progress does not confirm delivery to the UART.
+LSW5 also checks filename metadata; use a short name such as `MCU2.bin`. Cloud progress does not confirm delivery to the UART. Compare [download captures](hotspot/README.md#firmware-download-capture) with the emulator's received files.
+
+LSW5 `LSW5_32_5406_SS_04_00.00.00.11` does not authenticate its HTTPS download server; its cloud-control TLS connection does. The capture proxy saves downloads unchanged. Other logger versions may differ.
 
 The `Update-LCD` / 115200-baud path is not implemented.

@@ -1,0 +1,7 @@
+# Copy to hotspot.toml (gitignored) and chmod 600 hotspot.toml.
+# Changes take effect on the next run; reload only applies policy.conf.
+ssid = "inverter-lab"
+
+# Set a password of 8..63 printable ASCII characters to skip the prompt.
+# Empty or omitted: prompt at startup; pressing Enter there generates a password.
+password = ""

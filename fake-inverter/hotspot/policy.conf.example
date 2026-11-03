@@ -1,0 +1,19 @@
+# No active rules: DHCP works, DNS questions and connection attempts are logged,
+# but no names resolve and no Internet connections are allowed.
+# Copy to policy.conf, add the rules you need, then run ./hotspot.py reload.
+
+# Fixed DNS answer or live resolution for one exact name:
+# dns collector.example.com 93.184.215.14
+# dns-pass updates.example.com
+
+# DNS permission alone does not allow connections:
+# allow tcp collector.example.com 10000
+# allow tcp updates.example.com 443
+# allow udp 162.159.200.1 123
+
+# Let this PC contact an individual hotspot client:
+# output-allow tcp 10.77.0.115 80 8899
+
+# Capture firmware downloads instead of allowing direct access:
+# dns-pass eu2-fwupgrade.deyecloud.com
+# intercept tcp eu2-fwupgrade.deyecloud.com 443 8443

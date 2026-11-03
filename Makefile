@@ -57,3 +57,4 @@ format-check:
 check: format-check
 	./esphome/tests/host/run.sh
 	python3 -m unittest discover -s fake-inverter
+	python3 -m unittest discover -s fake-inverter/hotspot
