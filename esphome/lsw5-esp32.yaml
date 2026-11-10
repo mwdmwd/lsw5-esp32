@@ -1208,6 +1208,22 @@ number:
     icon: "mdi:battery-charging-low"
 
 switch:
+  # Software run/stop: MCU2 expects a one-register FC16 write to r80,
+  # with 0 to stop and 1 to enable operation.
+  # Stopping raises F19/Tz_Integ_Fault.
+  - platform: modbus_controller
+    use_write_multiple: true
+    modbus_controller_id: ${modbus_controller_id}
+    id: inverter_run_enable
+    name: "Inverter Run Enable"
+    register_type: holding
+    address: 80
+    bitmask: 1
+    skip_updates: ${slow_modbus_skip_updates}
+    restore_mode: DISABLED
+    entity_category: config
+    icon: "mdi:power"
+
   # Switching frequency for the inverter bridge. Reading register 35 on its own
   # is enough, but to write it a special dance is needed: MCU2 only accepts the
   # [r35, r36] = [mode, 100] command as a single FC16 write of 2 registers.
