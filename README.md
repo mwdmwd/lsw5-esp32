@@ -112,6 +112,25 @@ Tested with ESPHome 2026.6.2 and ESP-IDF. See [host tests](esphome/tests/host/RE
 >
 > You should aim to keep the data in your emulator as fresh as possible to minimize over/undershooting of the *Zero Export to Grid* feature under meter emulation.
 
+### HMI memory console
+
+Open `http://<device-address>/memory` to inspect memory or capture it to a binary file:
+
+```text
+mdw 0x0800c000 2
+hd 0x0800c000 256
+capture flash
+save
+```
+
+* `mdb`, `mdh`, `mdw`, `mdd`: read 8-, 16-, 32-, or 64-bit values; the count is in those units.
+* `hd`, `dump`: hexdump or capture a byte count. Numbers accept decimal or hex.
+* Captures continue with the browser closed. Partial downloads are available after cancellation. A new capture, **Clear capture**, or ESP32 restart discards the old one.
+
+**HMI:** byte addresses. Presets cover 512 KiB flash, 192 KiB SRAM (`0x20000000`), and 64 KiB TCM (`0x10000000`). Adjust `readback_flash_size` and `readback_unit_address` for your inverter. `mdw 0x1fff7a20` reads the [GD32F427 density word](https://www.gd32mcu.com/data/documents/datasheet/GD32F427xx_Datasheet_Rev1.2.pdf): flash KiB in the upper 16 bits, total RAM KiB in the lower 16. Custom reads accept any 32-bit address.
+
+Normal telemetry continues during captures. Only one memory capture or firmware transfer can run at a time.
+
 ### Inverter firmware upgrades
 
 Open `http://<device-address>/firmware`, select **MCU1/HMI** or **MCU2/DSP**, and upload the appropriate `.bin`. The file stays in PSRAM while its alignment and Deye length/CRC32 trailer are checked. Compare the displayed SHA-256 with `sha256sum`, then click **Start inverter transfer**.

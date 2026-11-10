@@ -353,6 +353,12 @@ public:
 	{
 		return new AsyncWebServerResponse{ status, body, {} };
 	}
+	AsyncWebServerResponse *beginResponse(int status, char const *type, uint8_t const *data,
+	                                      size_t length)
+	{
+		return beginResponse(status, type,
+		                     std::string(reinterpret_cast<char const *>(data), length));
+	}
 	void send(AsyncWebServerResponse *r)
 	{
 		response.reset(r);

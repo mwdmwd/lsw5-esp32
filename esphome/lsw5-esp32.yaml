@@ -139,7 +139,7 @@ wifi:
 web_server:
   local: true
 
-# Adds /firmware to the ESPHome web server.
+# Adds /firmware and /memory to the ESPHome web server.
 # Uploads are checked in PSRAM. Compare the displayed SHA-256 before starting
 # a transfer; only then is normal polling paused.
 deye_firmware_upgrade:
@@ -149,6 +149,9 @@ deye_firmware_upgrade:
   modbus_controller_id: inverter_modbus_controller
   event_monitor_id: deye_event_monitor_component
   max_firmware_size: 2097152 B # 2 MiB
+  # Expected HMI reply address; match the inverter Modbus address below.
+  # Memory requests use a different address on the wire.
+  readback_unit_address: 1
 
 captive_portal:
 

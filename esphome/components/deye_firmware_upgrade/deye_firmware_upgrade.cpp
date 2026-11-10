@@ -262,7 +262,8 @@ A wrong image or interrupted update can leave the inverter unbootable.</section>
 		if(status.has_verified_image && !status.active)
 			page << "<form method=post action=\"" << CLEAR_PATH << "\">" << identity
 			     << "<button type=submit>Discard staged image</button></form>";
-		page << "<p><a href=/>Return to ESPHome</a></p></body></html>";
+		page << "<p><a href=/memory>Memory console</a> | "
+		        "<a href=/>Return to ESPHome</a></p></body></html>";
 
 		auto *response =
 		    request->beginResponse(status_code, "text/html; charset=utf-8", page.str());
@@ -291,6 +292,7 @@ void DeyeFirmwareUpgrade::setup()
 {
 	auto *base = web_server_base::global_web_server_base;
 	base->add_handler(new FirmwareUpgradeRequestHandler(this));
+	this->setup_memory_readback_();
 }
 
 void DeyeFirmwareUpgrade::dump_config()
@@ -308,7 +310,10 @@ bool DeyeFirmwareUpgrade::begin_upload(void const *owner, std::string const &fil
                                        uint8_t target, size_t content_length)
 {
 	LockGuard lock(this->mutex_);
-	if(content_length == 0 || state_is_active_(this->state_) || this->upload_owner_ != nullptr)
+	if(content_length == 0 ||
+	   state_is_active_(this->state_) ||
+	   this->upload_owner_ != nullptr ||
+	   this->memoryRead_.active)
 	{
 		ESP_LOGW(TAG, "Rejecting empty upload or upload while another operation is active");
 		return false;
@@ -445,7 +450,8 @@ bool DeyeFirmwareUpgrade::request_start(std::string const &sha256,
                                         std::string const &confirmation_token)
 {
 	LockGuard lock(this->mutex_);
-	if((this->state_ != UpgradeState::STAGED && this->state_ != UpgradeState::ERROR) ||
+	if(this->memoryRead_.active ||
+	   (this->state_ != UpgradeState::STAGED && this->state_ != UpgradeState::ERROR) ||
 	   this->sha256_[0] == '\0')
 	{
 		// A replay must not restart a completed transfer or overwrite its status.
@@ -474,7 +480,7 @@ bool DeyeFirmwareUpgrade::clear_staged(std::string const &sha256,
                                        std::string const &confirmation_token)
 {
 	LockGuard lock(this->mutex_);
-	if(state_is_active_(this->state_) || this->upload_owner_ != nullptr)
+	if(state_is_active_(this->state_) || this->upload_owner_ != nullptr || this->memoryRead_.active)
 		return false;
 	if(this->firmware_ == nullptr ||
 	   sha256 != this->sha256_.data() ||
@@ -510,7 +516,9 @@ UpgradeSnapshot DeyeFirmwareUpgrade::snapshot()
 	result.total_blocks = this->total_blocks_;
 	result.max_firmware_size = this->max_firmware_size_;
 	result.has_verified_image = this->sha256_[0] != '\0';
-	result.active = state_is_active_(this->state_) || this->upload_owner_ != nullptr;
+	result.active = state_is_active_(this->state_) ||
+	                this->upload_owner_ != nullptr ||
+	                this->memoryRead_.active;
 	return result;
 }
 
@@ -559,9 +567,16 @@ void DeyeFirmwareUpgrade::loop()
 	uint32_t const now = millis();
 	this->expire_interrupted_upload_(now);
 	UpgradeState state;
+	bool readbackActive;
 	{
 		LockGuard lock(this->mutex_);
 		state = this->state_;
+		readbackActive = this->memoryRead_.active;
+	}
+	if(readbackActive)
+	{
+		this->service_memory_readback_(now);
+		return;
 	}
 	if(state == UpgradeState::QUEUED)
 		this->begin_transport_(now);
@@ -640,7 +655,7 @@ void DeyeFirmwareUpgrade::take_bus_()
 	this->drain_uart_();
 }
 
-void DeyeFirmwareUpgrade::restore_bus_()
+void DeyeFirmwareUpgrade::restore_bus_(bool restartPollers)
 {
 	if(this->bus_owned_)
 	{
@@ -651,9 +666,12 @@ void DeyeFirmwareUpgrade::restore_bus_()
 			this->modbus_controller_->enable_loop();
 		this->bus_owned_ = false;
 	}
-	this->modbus_controller_->start_poller();
-	if(this->event_monitor_ != nullptr)
-		this->event_monitor_->start_poller();
+	if(restartPollers)
+	{
+		this->modbus_controller_->start_poller();
+		if(this->event_monitor_ != nullptr)
+			this->event_monitor_->start_poller();
+	}
 }
 
 void DeyeFirmwareUpgrade::drain_uart_()

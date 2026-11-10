@@ -41,6 +41,18 @@ TEST(priority_deduplicates_without_replacing_inflight_or_retrying_work)
 	}
 }
 
+TEST(event_poll_is_queued_during_a_memory_read_slot)
+{
+	PriorityModbusController c;
+	DeyeEventMonitor m;
+	m.set_modbus_controller(&c);
+	c.disable_loop();
+	m.update();
+	m.update();
+	CHECK(c.command_queue_.size() == 2);
+	CHECK(c.command_queue_.front()->register_address == 500);
+	CHECK(c.command_queue_.back()->register_address == 551);
+}
 TEST(recovery_does_not_overwrite_pending_fault)
 {
 	PriorityModbusController c;

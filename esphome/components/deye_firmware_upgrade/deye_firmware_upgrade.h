@@ -11,6 +11,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 namespace esphome::deye_firmware_upgrade
@@ -49,6 +50,22 @@ struct UpgradeSnapshot
 	size_t max_firmware_size{ 0 };
 	bool has_verified_image{ false };
 	bool active{ false };
+};
+
+// Snapshots keep the PSRAM buffer alive during HTTP sends.
+struct MemoryReadSnapshot
+{
+	uint32_t jobId{ 0 };
+	uint32_t address{ 0 };
+	size_t length{ 0 };
+	size_t received{ 0 };
+	uint8_t unit{ 1 };
+	bool active{ false };
+	bool complete{ false };
+	uint32_t elapsedMs{ 0 };
+	size_t flashSize{ 512 * 1024 };
+	std::string message{ "Ready." };
+	std::shared_ptr<uint8_t> data;
 };
 
 class DeyeFirmwareUpgrade final : public Component, public uart::UARTDevice
@@ -90,6 +107,22 @@ public:
 	bool clear_staged(std::string const &sha256, std::string const &confirmation_token);
 	UpgradeSnapshot snapshot();
 
+	// Memory captures and upgrades cannot run at the same time.
+	void set_readback_unit_address(uint8_t unit)
+	{
+		this->readbackUnit_ = unit;
+		this->memoryRead_.unit = unit;
+	}
+	void set_readback_flash_size(size_t size)
+	{
+		this->readbackFlashSize_ = size;
+	}
+	// Returns nullptr on success, otherwise a fixed error string.
+	char const *request_memory_read(uint32_t address, size_t length);
+	bool cancel_memory_read(uint32_t jobId);
+	bool clear_memory_read(uint32_t jobId);
+	MemoryReadSnapshot memory_snapshot();
+
 protected:
 	static constexpr uint8_t MAX_ACTIVATION_ATTEMPTS = 5;
 	static constexpr uint8_t MAX_BLOCK_RETRIES = 10;
@@ -126,7 +159,7 @@ protected:
 	void begin_transport_(uint32_t now);
 	void service_quiescing_(uint32_t now);
 	void take_bus_();
-	void restore_bus_();
+	void restore_bus_(bool restartPollers = true);
 	void drain_uart_();
 
 	void send_activation_(uint32_t now);
@@ -149,6 +182,28 @@ protected:
 	{
 		return target == 1 || target == 2;
 	}
+
+	enum class ReadbackPhase : uint8_t
+	{
+		IDLE,
+		YIELDING,
+		WAITING,
+		SETTLING,
+		STOPPING
+	};
+	void setup_memory_readback_();
+	void service_memory_readback_(uint32_t now);
+	void finish_memory_readback_(bool success, char const *message);
+	MemoryReadSnapshot memoryRead_;
+	ReadbackPhase readbackPhase_{ ReadbackPhase::IDLE };
+	uint8_t readbackUnit_{ 1 };
+	uint32_t readbackDeadline_{ 0 };
+	uint32_t readbackQuietUntil_{ 0 };
+	uint32_t readbackStarted_{ 0 };
+	size_t readbackFlashSize_{ 512 * 1024 };
+	bool readbackCancel_{ false };
+	std::array<uint8_t, 8> readbackFrame_{};
+	size_t readbackFrameLength_{ 0 };
 
 	Mutex mutex_;
 	UpgradeState state_{ UpgradeState::EMPTY };

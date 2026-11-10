@@ -32,8 +32,8 @@ void DeyeEventMonitor::dump_config()
 
 void DeyeEventMonitor::update()
 {
-	if(!this->controller_->is_in_loop_state())
-		return;
+	// Memory reads briefly borrow the controller loop; retain scheduled work in its queue.
+	// Firmware updates suspend this monitor's poller explicitly.
 
 	if(this->event_pending_ &&
 	   millis() - this->pending_event_.timestamp_ms >= PENDING_EVENT_TIMEOUT_MS)
