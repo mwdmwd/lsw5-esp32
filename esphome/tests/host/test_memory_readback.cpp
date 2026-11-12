@@ -230,6 +230,11 @@ TEST(memory_http_reads_pages_and_downloads_with_supported_status_codes)
 	handler.handleRequest(&req);
 	CHECK(req.response->status == 409);
 	req.args["length"] = "8";
+	req.args["target"] = "dsp1175_meter";
+	handler.handleRequest(&req);
+	CHECK(req.response->status == 409 && r.reader.tx.empty());
+	CHECK(!r.reader.memory_snapshot().active);
+	req.args.erase("target");
 	handler.handleRequest(&req);
 	CHECK(req.response->status == 200); // 202 became 500 on IDF.
 	r.reader.loop();
@@ -259,4 +264,31 @@ TEST(memory_http_reads_pages_and_downloads_with_supported_status_codes)
 	uint32_t number;
 	for(char const *text : { "", "-1", "8x", "4294967296", "0x100000000" })
 		CHECK(!readback_number(text, number));
+}
+
+TEST(memory_http_dsp_target_uses_word_addresses_and_separate_download_names)
+{
+	MemoryRig r;
+	MemoryReadRequestHandler handler(&r.reader);
+	AsyncWebServerRequest req;
+	req.verb = HTTP_POST;
+	req.url = "/memory/read";
+	req.args = { { "address", "0x84000" }, { "length", "2" }, { "target", "unknown" } };
+	handler.handleRequest(&req);
+	CHECK(req.response->status == 409 && r.reader.tx.empty());
+	req.args["target"] = "dsp1175";
+	handler.handleRequest(&req);
+	CHECK(req.response->status == 200 && r.reader.memory_snapshot().dsp);
+	CHECK(req.response->body.find("\"address_unit_bytes\":2") != std::string::npos);
+	CHECK(req.response->body.find("\"target\":\"dsp1175\"") != std::string::npos);
+	r.reader.memoryRead_.data.get()[0] = 0x49;
+	r.reader.memoryRead_.data.get()[1] = 0;
+	r.reader.memoryRead_.received = 2;
+	req.verb = HTTP_GET;
+	req.url = "/memory/download";
+	req.args = { { "job", "1" } };
+	handler.handleRequest(&req);
+	CHECK(req.response->body == std::string("\x49\x00", 2));
+	CHECK(req.response->headers["Content-Disposition"].find("dsp1175-00084000-2.partial.bin") !=
+	      std::string::npos);
 }

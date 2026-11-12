@@ -120,7 +120,7 @@ Open `http://<device-address>/modbus` to read registers (FC03/FC04), write regis
 
 Raw frames include the unit address, function and data; CRC16 is appended unless disabled. For example, `01 03 01 f4 00 01` reads register 500 from unit 1. Requests and replies are limited to 256 bytes. Requests are sent once, without retries.
 
-### HMI memory console
+### HMI and DSP memory console
 
 Open `http://<device-address>/memory` to inspect memory or capture it to a binary file:
 
@@ -137,7 +137,9 @@ save
 
 **HMI:** byte addresses. Presets cover 512 KiB flash, 192 KiB SRAM (`0x20000000`), and 64 KiB TCM (`0x10000000`). Adjust `readback_flash_size` and `readback_unit_address` for your inverter. `mdw 0x1fff7a20` reads the [GD32F427 density word](https://www.gd32mcu.com/data/documents/datasheet/GD32F427xx_Datasheet_Rev1.2.pdf): flash KiB in the upper 16 bits, total RAM KiB in the lower 16. Custom reads accept any 32-bit address.
 
-Normal telemetry continues during captures. Only one memory capture, raw Modbus request, or firmware transfer can run at a time.
+**DSP 1175:** **16-bit word addresses**, **byte lengths** (even only). `dump 0x84000 306176` captures the application and trailer; the 32 KiB bootloader starts at `0x80000`. Files contain little-endian words. Only this flash range is exposed; RAM and peripheral reads are blocked. The HMI cache makes this slow: several seconds per word, roughly a week for the application. See [DSP register notes](register-notes.md#dsp-1175-memory-readback) for the restrictions.
+
+Normal telemetry continues during captures. DSP reads replace diagnostics at 560–583 until finished or cancelled. If restoration fails, start another DSP read to retry it. Only one memory capture, raw Modbus request, or firmware transfer can run at a time.
 
 ### Inverter firmware upgrades
 

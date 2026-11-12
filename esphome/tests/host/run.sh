@@ -22,3 +22,4 @@ done
     "$here"/test_*.cpp -lcrypto -o "$build/host-tests"
 "$build/host-tests"
 node "$here/test_modbus_console.cjs"
+node "$here/test_memory_console.cjs"

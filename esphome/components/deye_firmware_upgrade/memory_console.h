@@ -28,6 +28,15 @@ static constexpr char MEMORY_CONSOLE_HTML[] = R"HTML(<!doctype html>
       <a href="/">ESPHome</a> | <a href="/firmware">Firmware</a> | <a href="/modbus">Modbus console</a>
       | <span id="unit">Connecting…</span>
     </p>
+    <p>
+      <label for="target">Read from: </label>
+      <select id="target">
+        <option value="hmi">HMI</option>
+        <option value="dsp1175">DSP 1175 (through logger)</option>
+        <option value="dsp_meter" disabled>DSP (through Meter-485)</option>
+      </select>
+    </p>
+    <p id="targetHint"></p>
     <p id="error" role="alert"></p>
     <fieldset>
       <legend>Capture...</legend>
@@ -37,6 +46,7 @@ static constexpr char MEMORY_CONSOLE_HTML[] = R"HTML(<!doctype html>
       <button class="start" data-region="app">Application</button>
       <button class="start" data-region="ram">SRAM (192 KiB)</button>
       <button class="start" data-region="tcm">TCM RAM (64 KiB)</button>
+      <button class="start" data-region="boot" hidden>DSP bootloader (32 KiB)</button>
       <p>
         Reads run in the background alongside normal polling. A new read replaces the previous
         capture. RAM is read live.
@@ -64,27 +74,30 @@ static constexpr char MEMORY_CONSOLE_HTML[] = R"HTML(<!doctype html>
     </p>
     <details>
       <summary>Command reference</summary>
-      <pre>mdb ADDRESS [COUNT]       Display bytes (default: 1)
-mdh ADDRESS [COUNT]       Display 16-bit halfwords (default: 1)
-mdw ADDRESS [COUNT]       Display 32-bit words (default: 1)
-mdd ADDRESS [COUNT]       Display 64-bit doublewords (default: 1)
-hd ADDRESS [BYTES]        hexdump (default: 256 bytes)
-dump ADDRESS BYTES        Capture a custom range into PSRAM
-capture flash|app|ram|tcm  Capture a complete region
-save / cancel / clear    Download, stop or free the capture
-help                     Show this reference</pre>
+      <pre>
+mdb ADDRESS [COUNT]             Display bytes (default: 1)
+mdh ADDRESS [COUNT]             Display 16-bit halfwords (default: 1)
+mdw ADDRESS [COUNT]             Display 32-bit words (default: 1)
+mdd ADDRESS [COUNT]             Display 64-bit doublewords (default: 1)
+hd ADDRESS [BYTES]              hexdump (default: 256 bytes)
+dump ADDRESS BYTES              Capture a custom range into PSRAM
+capture flash|app|ram|tcm|boot  Capture a region on the selected processor
+save / cancel / clear           Download, stop or free the capture
+help                            Show this reference
+</pre>
       <p>
         Numbers are decimal or <code>0x</code>-prefixed hex. The <code>md*</code> count is in units
         of the selected width, as in OpenOCD. Display commands read up to 4096 fresh bytes; the
-        pager uses the saved capture. HMI addresses count bytes. Lengths and download offsets count
-        bytes. On HMI, <code>mdw 0x1fff7a20</code> reads the GD32 density word.
+        pager uses the saved capture. HMI addresses count bytes, DSP addresses count 16-bit words.
+        Lengths and download offsets count bytes. DSP captures require an even length and are
+        limited to 1175 flash; RAM and peripherals are blocked.
       </p>
     </details>
     <p><a href="/memory/status">Capture status JSON</a></p>
     <h2>Console</h2>
     <pre id="terminal" role="log" aria-label="Command output" tabindex="0">Type help for commands. ↑ / ↓ recalls command history.</pre>
     <form id="commandForm">
-      <label for="command">hmi &gt; </label>
+      <label for="command" id="prompt">hmi &gt; </label>
       <input id="command" aria-label="Command" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="mdw 0x0800c000">
       <button type="submit">Run</button>
     </form>
@@ -96,6 +109,18 @@ const size = n => n >= 1024 ? `${(n / 1024).toLocaleString(undefined, {maximumFr
 const duration = seconds => { const n = Math.max(0, Math.ceil(seconds)); return n >= 3600 ? `${Math.floor(n/3600)}h ${Math.floor(n%3600/60)}m` : n >= 60 ? `${Math.floor(n/60)}m ${n%60}s` : `${n}s`; };
 let state = null, busy = false, pageOffset = 0, pageData = new Uint8Array(), pageKey = '', pending = null;
 let history = [], historyIndex = 0, draft = '', revision = 0, pageRevision = 0;
+let hmiFlashSize = 512 * 1024;
+function targetUnit() { return $('target').value === 'dsp1175' ? 2 : 1; }
+function updateTarget() {
+  const dsp = targetUnit() === 2;
+  $('targetHint').textContent = dsp ? 'DSP word addresses, even byte lengths. A full application capture takes several days. Reads replace diagnostics at 560–583 until finished or cancelled. Cancellation waits for normal diagnostics to return.' : 'HMI byte addresses. Reads run alongside normal polling.';
+  $('prompt').textContent = dsp ? 'dsp > ' : 'hmi > ';
+  $('command').placeholder = dsp ? 'mdh 0x84000 2' : 'mdw 0x0800c000';
+  document.querySelectorAll('[data-region]').forEach(button => {
+    const region = button.dataset.region;
+    button.hidden = dsp ? ['flash', 'ram', 'tcm'].includes(region) : region === 'boot';
+  });
+}
 function number(text) {
   if (!/^(0x[0-9a-f]+|[0-9]+)$/i.test(text || '')) throw Error('Use decimal or 0x-prefixed hex numbers.');
   const n = Number(text);
@@ -119,7 +144,7 @@ async function bytes(job, offset, length) {
   if (!response.ok) { const result = await response.json(); throw Error(result.error || `HTTP ${response.status}`); }
   return new Uint8Array(await response.arrayBuffer());
 }
-function hexDump(data, address) {
+function hexDump(data, address, addressUnit = 1) {
   if (!data.length) return '';
   const lines = [];
   let previous = '', repeated = false;
@@ -134,13 +159,13 @@ function hexDump(data, address) {
     const left = bytes.slice(0, 8).join(' ').padEnd(23);
     const right = bytes.slice(8).join(' ').padEnd(23);
     const ascii = Array.from(part, b => b >= 32 && b < 127 ? String.fromCharCode(b) : '.').join('');
-    lines.push(`${hex(address + row)}  ${left}  ${right}  |${ascii}|`);
+    lines.push(`${hex(address + row / addressUnit)}  ${left}  ${right}  |${ascii}|`);
   }
-  lines.push(hex(address + data.length));
+  lines.push(hex(address + data.length / addressUnit));
   return lines.join('\n');
 }
-function format(data, address, width) {
-  if (!width) return hexDump(data, address);
+function format(data, address, width, addressUnit = 1) {
+  if (!width) return hexDump(data, address, addressUnit);
   const lines = [];
   for (let row = 0; row < data.length; row += 32) {
     const part = data.subarray(row, row + 32), values = [];
@@ -150,15 +175,16 @@ function format(data, address, width) {
       for (let j = count - 1; j >= 0; --j) value = (value << 8n) | BigInt(part[i+j]);
       values.push(hex(value, count * 2));
     }
-    lines.push(`0x${hex(address + row)}: ${values.join(' ')}`);
+    lines.push(`0x${hex(address + row / addressUnit)}: ${values.join(' ')}`);
   }
   return lines.join('\n');
 }
 function renderPage() {
   if (!state || !pageData.length) return;
-  $('hex').textContent = hexDump(pageData, state.address + pageOffset);
-  $('goto').value = '0x' + hex(state.address + pageOffset);
-  $('pageInfo').textContent = `0x${hex(state.address + pageOffset)}–0x${hex(state.address + pageOffset + pageData.length - 1)} · ${pageData.length} bytes`;
+  const unit = state.address_unit_bytes || 1, address = state.address + pageOffset / unit;
+  $('hex').textContent = hexDump(pageData, address, unit);
+  $('goto').value = '0x' + hex(address);
+  $('pageInfo').textContent = `0x${hex(address)}–0x${hex(address + Math.ceil(pageData.length / unit) - 1)} · ${pageData.length} bytes · ${unit === 2 ? 'DSP word' : 'HMI byte'} addresses`;
   $('copy').disabled = false;
 }
 async function refreshPage() {
@@ -176,13 +202,17 @@ async function refreshPage() {
 }
 async function update(s) {
   if (!state || state.job_id !== s.job_id) {
+    if (s.length) $('target').value = s.target || 'hmi';
     pageOffset = 0; pageKey = ''; pageData = new Uint8Array();
     $('hex').textContent = s.active ? 'Waiting for the first bytes…' : 'No captured bytes.';
     $('pageInfo').textContent = ''; $('copy').disabled = true;
   }
   state = s;
-  $('unit').textContent = `HMI unit ${s.unit}`;
-  $('flashSize').textContent = size(s.flash_size);
+  $('unit').textContent = `Logger unit ${s.unit}`;
+  if (s.target !== 'dsp1175') hmiFlashSize = s.flash_size;
+  $('flashSize').textContent = size(hmiFlashSize);
+  $('target').disabled = s.active;
+  updateTarget();
   $('message').textContent = s.message;
 
   $('progress').max = s.length || 1; $('progress').value = s.received;
@@ -196,18 +226,21 @@ async function update(s) {
     const done = pending; pending = null;
     output(`${s.message} ${s.received} / ${s.length} bytes.`);
     if (s.complete && done.display) {
-      const data = await bytes(s.job_id, done.address - s.address, done.length);
-      output(format(data, done.address, done.width));
+      const unit = s.address_unit_bytes || 1;
+      const data = await bytes(s.job_id, (done.address - s.address) * unit, done.length);
+      output(format(data, done.address, done.width, unit));
     }
   } else if (pending && pending.job !== s.job_id) { pending = null; output('Capture replaced by another request.'); }
 }
 async function start(address, length, display = false, width = 0) {
   if (busy || (state && state.active)) throw Error('A capture is already running. Cancel it first.');
-  if (!length || address + length > 0x100000000) throw Error('Invalid capture range.');
+  const unit = targetUnit();
+  if (!length || address + length / unit > 0x100000000) throw Error('Invalid capture range.');
+  if (unit === 2 && (length % 2 || address < 0x80000 || address + length / 2 > 0xa9600)) throw Error('DSP 1175: use word addresses 0x80000..0xa95ff and an even byte length within that range.');
   if (display && length > 4096) throw Error('Display up to 4096 bytes, or use dump for a larger capture.');
   busy = true; ++revision;
   try {
-    const s = await api('read', {address:'0x' + hex(address), length});
+    const s = await api('read', {address:'0x' + hex(address), length, target:$('target').value});
     pending = {job:s.job_id, address, length, display, width};
 
     output(`Reading ${size(length)} at 0x${hex(address)}…`);
@@ -216,8 +249,8 @@ async function start(address, length, display = false, width = 0) {
 }
 async function capture(region) {
   if (!state) throw Error('Still connecting.');
-  const ranges = {flash:[0x08000000, state.flash_size], app:[0x0800c000, state.flash_size-0xc000], ram:[0x20000000, 192*1024], tcm:[0x10000000, 64*1024]};
-  if (!ranges[region]) throw Error('Choose flash, app, ram or tcm.');
+  const ranges = targetUnit() === 2 ? {app:[0x84000, 306176], boot:[0x80000, 32768]} : {flash:[0x08000000, hmiFlashSize], app:[0x0800c000, hmiFlashSize-0xc000], ram:[0x20000000, 192*1024], tcm:[0x10000000, 64*1024]};
+  if (!ranges[region]) throw Error('Choose a region available on the selected processor.');
   await start(...ranges[region]);
 }
 function download() {
@@ -254,7 +287,7 @@ function action(fn) { return async event => { if (event) event.preventDefault();
 $('commandForm').addEventListener('submit', action(async () => {
   const text = $('command').value.trim(); if (!text) return;
   history.push(text); history = history.slice(-50); historyIndex = history.length; draft = '';
-  $('command').value = ''; output('hmi > ' + text); await command(text);
+  $('command').value = ''; output((targetUnit() === 2 ? 'dsp > ' : 'hmi > ') + text); await command(text);
 }));
 $('command').addEventListener('keydown', event => {
   if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
@@ -266,13 +299,15 @@ document.querySelectorAll('[data-region]').forEach(button => button.addEventList
 $('download').addEventListener('click', action(download));
 $('cancel').addEventListener('click', action(() => control('cancel')));
 $('clear').addEventListener('click', action(() => control('clear')));
+$('target').addEventListener('change', updateTarget);
 
 $('previous').addEventListener('click', action(async () => { pageOffset = Math.max(0, pageOffset-256); await refreshPage(); }));
 $('next').addEventListener('click', action(async () => { pageOffset += 256; await refreshPage(); }));
 $('gotoForm').addEventListener('submit', action(async () => {
   const address = number($('goto').value);
-  if (!state || address < state.address || address >= state.address + state.received) throw Error('Choose an address within the captured bytes.');
-  pageOffset = Math.floor((address-state.address)/16)*16; await refreshPage();
+  const unit = state && state.address_unit_bytes || 1;
+  if (!state || address < state.address || address >= state.address + state.received / unit) throw Error('Choose an address within the captured bytes.');
+  pageOffset = Math.floor((address-state.address)*unit/16)*16; await refreshPage();
 }));
 $('copy').addEventListener('click', action(async () => {
   const text = $('hex').textContent;
@@ -289,6 +324,7 @@ async function poll() {
   } catch (error) { report(error); }
   setTimeout(poll, state && state.active ? 1000 : 3000);
 }
+updateTarget();
 poll();
     </script>
   </body>

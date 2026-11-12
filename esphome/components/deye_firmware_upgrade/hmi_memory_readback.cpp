@@ -102,11 +102,15 @@ public:
 			uint32_t address, length, jobId;
 			if(url == "/memory/read")
 			{
-				if(!readback_number(request->arg("address"), address) ||
-				   !readback_number(request->arg("length"), length))
+				auto const target = request->arg("target");
+				if(!target.empty() && target != "hmi" && target != "dsp1175")
+					error = "Choose hmi or dsp1175.";
+				else if(!readback_number(request->arg("address"), address) ||
+				        !readback_number(request->arg("length"), length))
 					error = "Use decimal or 0x-prefixed hexadecimal address and length.";
 				else
-					error = this->parent_->request_memory_read(address, length);
+					error =
+					    this->parent_->request_memory_read(address, length, target == "dsp1175");
 			}
 			else if(!readback_number(request->arg("job"), jobId))
 				error = "Missing capture ID.";
@@ -139,9 +143,9 @@ public:
 				if(url == "/memory/download")
 				{
 					std::ostringstream name;
-					name << "attachment; filename=\"hmi-" << std::hex << std::setfill('0')
-					     << std::setw(8) << s.address << '-' << std::dec << length
-					     << (s.complete ? ".bin\"" : ".partial.bin\"");
+					name << "attachment; filename=\"" << (s.dsp ? "dsp1175-" : "hmi-") << std::hex
+					     << std::setfill('0') << std::setw(8) << s.address << '-' << std::dec
+					     << length << (s.complete ? ".bin\"" : ".partial.bin\"");
 					disposition = name.str();
 					response->addHeader("Content-Disposition", disposition.c_str());
 				}
@@ -154,6 +158,9 @@ public:
 		std::ostringstream body;
 		// Strings here are fixed local messages, never reflected user input.
 		body << "{\"job_id\":" << s.jobId << ",\"active\":" << (s.active ? "true" : "false")
+		     << ",\"target\":\"" << (s.dsp ? "dsp1175" : "hmi")
+		     << "\",\"address_unit_bytes\":" << (s.dsp ? 2 : 1)
+		     << ",\"diagnostics_restored\":" << (s.diagnostics_restored ? "true" : "false")
 		     << ",\"complete\":" << (s.complete ? "true" : "false") << ",\"address\":" << s.address
 		     << ",\"length\":" << s.length << ",\"received\":" << s.received
 		     << ",\"unit\":" << unsigned(s.unit) << ",\"elapsed_ms\":" << s.elapsedMs
@@ -178,13 +185,13 @@ MemoryReadSnapshot DeyeFirmwareUpgrade::memory_snapshot()
 {
 	LockGuard lock(this->mutex_);
 	auto result = this->memoryRead_;
-	result.flashSize = this->readbackFlashSize_;
+	result.flashSize = result.dsp ? 306176 : this->readbackFlashSize_;
 	if(result.active)
 		result.elapsedMs = millis() - this->readbackStarted_;
 	return result;
 }
 
-char const *DeyeFirmwareUpgrade::request_memory_read(uint32_t address, size_t length)
+char const *DeyeFirmwareUpgrade::request_memory_read(uint32_t address, size_t length, bool dsp)
 {
 	LockGuard lock(this->mutex_);
 	if(this->memoryRead_.active ||
@@ -196,6 +203,11 @@ char const *DeyeFirmwareUpgrade::request_memory_read(uint32_t address, size_t le
 		return "Invalid HMI unit address.";
 	if(!length || uint64_t(address) + length > (uint64_t(1) << 32))
 		return "Length must be nonzero and the end address must fit in 32 bits.";
+	// Only verified flash is exposed. Arbitrary DSP reads can fault, including
+	// reads from CLA program RAM or uninitialized RAM; see register-notes.md.
+	if(dsp && ((length & 1) || address < 0x80000 || uint64_t(address) + length / 2 > 0xA9600))
+		return "DSP 1175: use a word address in 0x80000..0xa95ff and an even byte "
+		       "length within that range.";
 	RAMAllocator<uint8_t> allocator(RAMAllocator<uint8_t>::ALLOC_EXTERNAL);
 	auto *buffer = allocator.allocate(length);
 	if(buffer == nullptr)
@@ -209,6 +221,7 @@ char const *DeyeFirmwareUpgrade::request_memory_read(uint32_t address, size_t le
 	                              });
 	uint32_t const jobId = this->memoryRead_.jobId + 1;
 	this->memoryRead_ = MemoryReadSnapshot{};
+	this->memoryRead_.dsp = dsp;
 	this->memoryRead_.jobId = jobId;
 	this->memoryRead_.address = address;
 	this->memoryRead_.length = length;
@@ -219,6 +232,8 @@ char const *DeyeFirmwareUpgrade::request_memory_read(uint32_t address, size_t le
 	this->readbackStarted_ = millis();
 	this->readbackCancel_ = false;
 	this->readbackPhase_ = ReadbackPhase::YIELDING;
+	if(dsp)
+		this->start_dsp_readback_(this->readbackStarted_);
 	return nullptr;
 }
 
@@ -258,6 +273,11 @@ void DeyeFirmwareUpgrade::finish_memory_readback_(bool success, char const *mess
 void DeyeFirmwareUpgrade::service_memory_readback_(uint32_t now)
 {
 	LockGuard lock(this->mutex_);
+	if(this->memoryRead_.dsp)
+	{
+		this->service_dsp_readback_(now);
+		return;
+	}
 	if(this->readbackCancel_ && this->readbackPhase_ != ReadbackPhase::STOPPING)
 	{
 		if(!this->bus_owned_)

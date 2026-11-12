@@ -56,6 +56,8 @@ struct UpgradeSnapshot
 // Snapshots keep the PSRAM buffer alive during HTTP sends.
 struct MemoryReadSnapshot
 {
+	bool dsp{ false };
+	bool diagnostics_restored{ true };
 	uint32_t jobId{ 0 };
 	uint32_t address{ 0 };
 	size_t length{ 0 };
@@ -134,7 +136,7 @@ public:
 		this->readbackFlashSize_ = size;
 	}
 	// Returns nullptr on success, otherwise a fixed error string.
-	char const *request_memory_read(uint32_t address, size_t length);
+	char const *request_memory_read(uint32_t address, size_t length, bool dsp = false);
 	bool cancel_memory_read(uint32_t jobId);
 	bool clear_memory_read(uint32_t jobId);
 	MemoryReadSnapshot memory_snapshot();
@@ -225,6 +227,49 @@ protected:
 	bool readbackCancel_{ false };
 	std::array<uint8_t, 8> readbackFrame_{};
 	size_t readbackFrameLength_{ 0 };
+
+	// The stock DSP has a cached indirect window, not the HMI's FC05 reader.
+	// Only source 0 is assigned absolutely; sources 1/2 provide address tags.
+	enum class DspReadStage : uint8_t
+	{
+		IDENTITY,
+		DISABLE,
+		WAIT_DISABLED,
+		ENABLE,
+		WAIT_ENABLED,
+		SENTINEL,
+		WAIT_SENTINEL,
+		PROBE,
+		WAIT_PROBE,
+		CONFIG_SENTINEL,
+		WAIT_CONFIG_SENTINEL,
+		CONFIGURE,
+		WAIT_CLEARED,
+		ADDRESS,
+		DATA,
+		RESTORE,
+		WAIT_RESTORED,
+	};
+	void start_dsp_readback_(uint32_t now);
+	void service_dsp_readback_(uint32_t now);
+	void dsp_read_stage_(DspReadStage stage, uint32_t now);
+	void dsp_read_request_();
+	void dsp_read_reply_(uint32_t now);
+	void stop_dsp_readback_(bool success, char const *message, uint32_t now);
+	DspReadStage dspReadStage_{ DspReadStage::IDENTITY };
+	uint32_t dspStageDeadline_{ 0 };
+	uint32_t dspNextRequest_{ 0 };
+	uint32_t dspRestoreAfter_{ 0 };
+	uint8_t dspProbeIndex_{ 0 };
+	uint8_t dspConfigureIndex_{ 0 };
+	uint8_t dspRestoreAttempts_{ 0 };
+	std::array<uint32_t, 2> dspPointers_{};
+	std::vector<uint8_t> dspRequest_;
+	std::vector<uint8_t> dspReply_;
+	bool dspTouched_{ false };
+	bool dspStopping_{ false };
+	bool dspSucceeded_{ false };
+	std::string dspResult_;
 
 	void setup_raw_modbus_();
 	void service_raw_modbus_(uint32_t now);
