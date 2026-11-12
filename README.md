@@ -105,6 +105,8 @@ Errata are listed by the newest affected revision. Older revisions also inherit 
 
 A sample [`esphome/lsw5-esp32.yaml`](./esphome/lsw5-esp32.yaml) file is included in this repository. It serves as a starting point, illustrating the correct pin mappings for this specific board. It includes basic MQTT setup and RS-485 configuration for external meter emulation with source data over MQTT, as well as LED support.
 
+PV/GEN totals work with stock or modded DSP firmware; the latter can supply extra precision. The `energy_accounting` component filters PV readings and prevents the published total from decreasing. See [register notes](register-notes.md#high-resolution-pvgen-counters).
+
 Tested with ESPHome 2026.6.2 and ESP-IDF. See [host tests](esphome/tests/host/README.md) for build dependencies.
 
 > [!NOTE]

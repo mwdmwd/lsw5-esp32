@@ -37,23 +37,11 @@ external_components:
   - source:
       type: local
       path: components
-    components: [priority_modbus_controller, deye_event_monitor, deye_firmware_upgrade]
+    components: [energy_accounting, priority_modbus_controller, deye_event_monitor, deye_firmware_upgrade]
 
-globals:
-  # Highest Total PV Production published during this boot. Seeded from the
-  # retained MQTT state topic so normal monotonic filtering does not write NVS.
-  - id: total_pv_production_floor_kwh
-    type: float
-    restore_value: false
-    initial_value: "-1.0f"
-
-  # The PV total must not publish after boot until the retained MQTT floor has
-  # been loaded, otherwise a reboot during a stale inverter window could leak a
-  # lower value before the broker checkpoint arrives.
-  - id: total_pv_production_floor_seeded
-    type: bool
-    restore_value: false
-    initial_value: "false"
+# Integer minimum filter and retained MQTT floor; no NVS writes.
+energy_accounting:
+  id: total_pv_production_filter
 
 esphome:
   name: ${name}
@@ -172,22 +160,9 @@ mqtt:
     - topic: ${name}/generated_energy
       then:
         - lambda: |-
-            auto parsed = parse_number<float>(x);
-            if(!parsed.has_value() || isnan(parsed.value()) || parsed.value() < 0.0f)
-            {
+            if(!id(total_pv_production_filter).seed(x))
                 ESP_LOGW("total_pv_production", "Ignoring invalid retained Total PV Production floor: %s",
                          x.c_str());
-                return;
-            }
-
-            float const rounded = roundf(parsed.value() * 10.0f) / 10.0f;
-            auto &floor = id(total_pv_production_floor_kwh);
-            if(isnan(floor) || rounded > floor)
-            {
-                floor = rounded;
-                ESP_LOGI("total_pv_production", "Loaded Total PV Production floor from MQTT: %.1f kWh", floor);
-            }
-            id(total_pv_production_floor_seeded) = true;
 
 uart:
   # Main RS232 connection to the inverter's MCU1/HMI
@@ -350,6 +325,65 @@ text_sensor:
     topic: elec/fast_power
     internal: false
     discovery: false
+
+  # Exact kWh over MQTT. Set unit/device/state classes in HA's MQTT sensor.
+  - platform: template
+    name: "Total PV Production"
+    id: total_pv_production
+    update_interval: never
+    icon: "mdi:solar-power"
+    discovery: false
+    state_topic: ${name}/generated_energy
+    retain: true
+
+  - platform: modbus_controller
+    modbus_controller_id: ${modbus_controller_id}
+    name: "Extended Feature Enable Register"
+    id: efer
+    register_type: holding
+    address: 534
+    # Claim 534..540; Temperature extends this through 547. ESPHome merges
+    # adjacent items into one FC03 read. Keep both at the default skip_updates
+    # and do not force a new range at Temperature: PV needs the whole reply.
+    register_count: 7
+    response_size: 14 # This item's span; the lambda receives all 28 merged bytes.
+    raw_encode: HEXBYTES
+    internal: true
+    discovery: false
+    lambda: |-
+      // item->offset locates r534 even if an earlier item extends this range.
+      size_t const offset = item->offset;
+      if(data.size() < offset + 28)
+          return std::string("invalid reply");
+      auto word = [&](size_t index) -> uint16_t
+      { return (uint16_t(data[offset + index * 2]) << 8) | data[offset + index * 2 + 1]; };
+      uint16_t const combined_low = word(8);  // r542
+      uint16_t const generator_low = word(9); // r543
+      uint16_t const efer = word(13);         // r547, bit 0: extended PV/GEN precision
+      std::string const features = std::to_string(efer);
+      uint64_t const combined_base = (uint64_t(word(0)) | (uint64_t(word(1)) << 16)) * 1000;
+      uint64_t const generator_base = (uint64_t(word(3)) | (uint64_t(word(4)) << 16)) * 1000;
+      // Stock firmware and PV-only patches use the coarse counters unchanged.
+      uint16_t const combined_delta = (efer & 1) ? uint16_t(combined_low - uint16_t(combined_base)) : 0;
+      uint16_t const generator_delta =
+          (efer & 1) ? uint16_t(generator_low - uint16_t(generator_base)) : 0;
+      if(combined_delta >= 1000 || generator_delta >= 1000)
+      {
+          ESP_LOGW("energy_accounting", "Ignoring inconsistent paired energy counters");
+          return features;
+      }
+      uint64_t const combined = combined_base + combined_delta;
+      uint64_t const generator = generator_base + generator_delta;
+      // GEN is diagnostic. Its float state never feeds the PV calculation.
+      id(total_generator_production).publish_state(double(generator) / 10000.0);
+      constexpr uint64_t history = uint64_t(${solar_production_offset_kwh} * 10000.0 + 0.5);
+      if(combined + history >= generator)
+      {
+          auto const pv = id(total_pv_production_filter).update(combined + history - generator);
+          if(pv)
+              id(total_pv_production).publish_state(energy_accounting::kwh(*pv));
+      }
+      return features;
 
 sensor:
   - id: meter_grid_power_ph1
@@ -614,80 +648,14 @@ sensor:
     discovery: false
 
   # Energy
-  - platform: modbus_controller
-    modbus_controller_id: ${modbus_controller_id}
-    name: "Total PV Production"
-    id: total_pv_production
-    register_type: holding
-    address: 534
-    unit_of_measurement: "kWh"
-    device_class: energy
-    state_class: "total_increasing"
-    accuracy_decimals: 1
-    value_type: U_DWORD_R
-    filters:
-      - filter_out: 0
-      # - delta: 0.0  # prevent spike if Total Generator Production moves earlier
-      - multiply: 0.1
-      - offset: ${solar_production_offset_kwh}
-      - lambda: |-
-          auto generator_production = id(total_generator_production).state;
-          if(!id(total_generator_production).has_state() ||
-             isnan(generator_production) ||
-             generator_production <= 0.0f)
-          {
-              return {};
-          }
-          return x - generator_production;
-      - min:
-          window_size: 3 # prevent spike on readout
-          send_every: 1
-      - lambda: |-
-          if(isnan(x))
-          {
-              return {};
-          }
-          float const rounded = roundf(x * 10.0f) / 10.0f;
-          auto &floor = id(total_pv_production_floor_kwh);
-
-          if(!id(total_pv_production_floor_seeded))
-          {
-              ESP_LOGW("total_pv_production",
-                       "Suppressing Total PV Production until retained MQTT floor is loaded: %.1f kWh",
-                       rounded);
-              return {};
-          }
-
-          if(isnan(floor) || floor < 0.0f || rounded >= floor)
-          {
-              if(isnan(floor) || rounded > floor)
-              {
-                  floor = rounded;
-              }
-              return rounded;
-          }
-          ESP_LOGW("total_pv_production", "Suppressing non-monotonic Total PV Production: %.1f -> %.1f kWh",
-                   floor, rounded);
-          return {};
-    icon: "mdi:solar-power"
-    state_topic: ${name}/generated_energy
-    retain: true
-    discovery: false
-
-  - platform: modbus_controller
-    modbus_controller_id: ${modbus_controller_id}
+  - platform: template
     name: "Total Generator Production"
     id: total_generator_production
-    register_type: holding
-    address: 537
+    update_interval: never
     unit_of_measurement: "kWh"
     device_class: energy
     state_class: "total_increasing"
-    accuracy_decimals: 1
-    value_type: U_DWORD_R
-    filters:
-      - filter_out: 0
-      - multiply: 0.1
+    accuracy_decimals: 4
     icon: "mdi:generator-stationary"
     discovery: true
 
@@ -697,6 +665,10 @@ sensor:
     name: "Temperature"
     register_type: holding
     address: 541
+    # Claim 541..547, adjoining the energy reader's 534..540. Only r541 is
+    # temperature; the extra words supply both low counters and EFER in the
+    # same reply. Keep skip_updates at its default and force_new_range unset.
+    register_count: 7
     unit_of_measurement: "°C"
     device_class: temperature
     state_class: "measurement"
