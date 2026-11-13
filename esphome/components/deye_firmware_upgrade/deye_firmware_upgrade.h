@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace esphome::deye_firmware_upgrade
 {
@@ -66,6 +67,21 @@ struct MemoryReadSnapshot
 	size_t flashSize{ 512 * 1024 };
 	std::string message{ "Ready." };
 	std::shared_ptr<uint8_t> data;
+};
+
+struct RawModbusSnapshot
+{
+	uint32_t request_id{ 0 };
+	bool active{ false };
+	bool sent{ false };
+	bool timed_out{ false };
+	bool cancelled{ false };
+	bool overflow{ false };
+	uint32_t elapsed_ms{ 0 };
+	uint32_t timeout_ms{ 1000 };
+	std::string message{ "Ready." };
+	std::vector<uint8_t> request;
+	std::vector<uint8_t> response;
 };
 
 class DeyeFirmwareUpgrade final : public Component, public uart::UARTDevice
@@ -122,6 +138,11 @@ public:
 	bool cancel_memory_read(uint32_t jobId);
 	bool clear_memory_read(uint32_t jobId);
 	MemoryReadSnapshot memory_snapshot();
+
+	// Raw requests share the upgrade/readback UART owner and are never retried.
+	char const *request_raw_modbus(std::string const &hex, bool append_crc, uint32_t timeout_ms);
+	bool cancel_raw_modbus(uint32_t request_id);
+	RawModbusSnapshot raw_modbus_snapshot();
 
 protected:
 	static constexpr uint8_t MAX_ACTIVATION_ATTEMPTS = 5;
@@ -204,6 +225,15 @@ protected:
 	bool readbackCancel_{ false };
 	std::array<uint8_t, 8> readbackFrame_{};
 	size_t readbackFrameLength_{ 0 };
+
+	void setup_raw_modbus_();
+	void service_raw_modbus_(uint32_t now);
+	void finish_raw_modbus_(char const *message);
+	RawModbusSnapshot raw_modbus_;
+	uint32_t raw_modbus_started_{ 0 };
+	uint32_t raw_modbus_deadline_{ 0 };
+	uint32_t raw_modbus_quiet_until_{ 0 };
+	bool raw_modbus_cancel_{ false };
 
 	Mutex mutex_;
 	UpgradeState state_{ UpgradeState::EMPTY };

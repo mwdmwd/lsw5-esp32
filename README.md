@@ -114,6 +114,12 @@ Tested with ESPHome 2026.6.2 and ESP-IDF. See [host tests](esphome/tests/host/RE
 >
 > You should aim to keep the data in your emulator as fresh as possible to minimize over/undershooting of the *Zero Export to Grid* feature under meter emulation.
 
+### Modbus console
+
+Open `http://<device-address>/modbus` to read registers (FC03/FC04), write registers (FC06/FC16), or send raw Modbus RTU frames. Register addresses are zero-based; numbers accept decimal or `0x`-prefixed hex. Write acknowledgements confirm the request; read back to check the resulting value.
+
+Raw frames include the unit address, function and data; CRC16 is appended unless disabled. For example, `01 03 01 f4 00 01` reads register 500 from unit 1. Requests and replies are limited to 256 bytes. Requests are sent once, without retries.
+
 ### HMI memory console
 
 Open `http://<device-address>/memory` to inspect memory or capture it to a binary file:
@@ -131,7 +137,7 @@ save
 
 **HMI:** byte addresses. Presets cover 512 KiB flash, 192 KiB SRAM (`0x20000000`), and 64 KiB TCM (`0x10000000`). Adjust `readback_flash_size` and `readback_unit_address` for your inverter. `mdw 0x1fff7a20` reads the [GD32F427 density word](https://www.gd32mcu.com/data/documents/datasheet/GD32F427xx_Datasheet_Rev1.2.pdf): flash KiB in the upper 16 bits, total RAM KiB in the lower 16. Custom reads accept any 32-bit address.
 
-Normal telemetry continues during captures. Only one memory capture or firmware transfer can run at a time.
+Normal telemetry continues during captures. Only one memory capture, raw Modbus request, or firmware transfer can run at a time.
 
 ### Inverter firmware upgrades
 

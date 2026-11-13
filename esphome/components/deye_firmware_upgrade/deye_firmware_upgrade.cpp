@@ -263,6 +263,7 @@ A wrong image or interrupted update can leave the inverter unbootable.</section>
 			page << "<form method=post action=\"" << CLEAR_PATH << "\">" << identity
 			     << "<button type=submit>Discard staged image</button></form>";
 		page << "<p><a href=/memory>Memory console</a> | "
+		        "<a href=/modbus>Modbus console</a> | "
 		        "<a href=/>Return to ESPHome</a></p></body></html>";
 
 		auto *response =
@@ -293,6 +294,7 @@ void DeyeFirmwareUpgrade::setup()
 	auto *base = web_server_base::global_web_server_base;
 	base->add_handler(new FirmwareUpgradeRequestHandler(this));
 	this->setup_memory_readback_();
+	this->setup_raw_modbus_();
 }
 
 void DeyeFirmwareUpgrade::dump_config()
@@ -313,7 +315,8 @@ bool DeyeFirmwareUpgrade::begin_upload(void const *owner, std::string const &fil
 	if(content_length == 0 ||
 	   state_is_active_(this->state_) ||
 	   this->upload_owner_ != nullptr ||
-	   this->memoryRead_.active)
+	   this->memoryRead_.active ||
+	   this->raw_modbus_.active)
 	{
 		ESP_LOGW(TAG, "Rejecting empty upload or upload while another operation is active");
 		return false;
@@ -451,6 +454,7 @@ bool DeyeFirmwareUpgrade::request_start(std::string const &sha256,
 {
 	LockGuard lock(this->mutex_);
 	if(this->memoryRead_.active ||
+	   this->raw_modbus_.active ||
 	   (this->state_ != UpgradeState::STAGED && this->state_ != UpgradeState::ERROR) ||
 	   this->sha256_[0] == '\0')
 	{
@@ -568,10 +572,17 @@ void DeyeFirmwareUpgrade::loop()
 	this->expire_interrupted_upload_(now);
 	UpgradeState state;
 	bool readbackActive;
+	bool rawModbusActive;
 	{
 		LockGuard lock(this->mutex_);
 		state = this->state_;
 		readbackActive = this->memoryRead_.active;
+		rawModbusActive = this->raw_modbus_.active;
+	}
+	if(rawModbusActive)
+	{
+		this->service_raw_modbus_(now);
+		return;
 	}
 	if(readbackActive)
 	{

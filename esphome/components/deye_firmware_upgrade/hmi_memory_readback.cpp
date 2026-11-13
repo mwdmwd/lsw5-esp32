@@ -187,8 +187,11 @@ MemoryReadSnapshot DeyeFirmwareUpgrade::memory_snapshot()
 char const *DeyeFirmwareUpgrade::request_memory_read(uint32_t address, size_t length)
 {
 	LockGuard lock(this->mutex_);
-	if(this->memoryRead_.active || state_is_active_(this->state_) || this->upload_owner_ != nullptr)
-		return "Another read, upload or upgrade is active.";
+	if(this->memoryRead_.active ||
+	   this->raw_modbus_.active ||
+	   state_is_active_(this->state_) ||
+	   this->upload_owner_ != nullptr)
+		return "Another read, Modbus request, upload or upgrade is active.";
 	if(this->readbackUnit_ == 0 || this->readbackUnit_ > 247)
 		return "Invalid HMI unit address.";
 	if(!length || uint64_t(address) + length > (uint64_t(1) << 32))

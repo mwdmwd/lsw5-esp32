@@ -21,3 +21,4 @@ done
 "${CXX:-g++}" "${flags[@]}" -I"$build/stubs" -I"$here" -I"$root" \
     "$here"/test_*.cpp -lcrypto -o "$build/host-tests"
 "$build/host-tests"
+node "$here/test_modbus_console.cjs"

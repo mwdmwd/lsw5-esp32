@@ -127,7 +127,7 @@ wifi:
 web_server:
   local: true
 
-# Adds /firmware and /memory to the ESPHome web server.
+# Adds /firmware, /memory and /modbus to the web server.
 # Uploads are checked in PSRAM. Compare the displayed SHA-256 before starting
 # a transfer; only then is normal polling paused.
 deye_firmware_upgrade:

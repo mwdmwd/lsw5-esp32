@@ -25,7 +25,8 @@ static constexpr char MEMORY_CONSOLE_HTML[] = R"HTML(<!doctype html>
   <body>
     <h1>Inverter memory console</h1>
     <p>
-      <a href="/">ESPHome</a> | <a href="/firmware">Firmware</a> | <span id="unit">Connecting…</span>
+      <a href="/">ESPHome</a> | <a href="/firmware">Firmware</a> | <a href="/modbus">Modbus console</a>
+      | <span id="unit">Connecting…</span>
     </p>
     <p id="error" role="alert"></p>
     <fieldset>
