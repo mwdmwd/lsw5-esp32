@@ -58,3 +58,7 @@ check: format-check
 	./esphome/tests/host/run.sh
 	python3 -m unittest discover -s fake-inverter
 	python3 -m unittest discover -s fake-inverter/hotspot
+
+.PHONY: check-energy-accounting-exhaustive
+check-energy-accounting-exhaustive:
+	python3 esphome/tests/host/test_energy_accounting.py --exhaustive

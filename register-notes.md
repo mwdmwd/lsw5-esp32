@@ -33,6 +33,19 @@ PV publication waits for a retained MQTT value and three valid samples. Existing
 
 Total Generator Production remains a numeric ESPHome sensor with `kWh` and its default MQTT topic. Its float state is approximate and does not feed PV accounting.
 
+### Decoder validation
+
+The [host tests](esphome/tests/host/README.md#energy-accounting) compile the YAML lambda and compare it with independent integer and decimal calculations.
+
+For raw counter `R`, `Q = floor(R / 1000)` confines it to `[1000Q, 1000Q + 999]`. Numbers with the same low word are 65,536 apart, so at most one fits. This is why `delta < 1000` is sufficient to reconstruct a counter.
+
+Since `gcd(1000, 65536) = 8`, the low-word acceptance pattern repeats every 8,192 quotients. The sweep checks all 65,536 low words at every quotient residue, for both counters at both ends of the 32-bit quotient range. It also checks every coarse high word at selected boundaries, all low-word pairs at one quotient pair, and full callbacks around PV subtraction equality. This covers the distinct arithmetic boundaries, not every possible 96-bit input tuple.
+
+* Maximum per counter: **429,496,729.5999 kWh** (`2^32 * 1000 - 1` raw units). Quotient overflow aliases zero and cannot be detected from these registers.
+* Consistent data can still be stale or reset. Read both counters together; the remainder check cannot detect every mixed snapshot.
+* EFER describes enabled features, not sample validity. Inconsistent extended pairs and short replies leave old totals retained. Negative net PV updates GEN but leaves the previous PV value.
+* Host tests cover decoding and publication calls, not ESPHome scheduling or MQTT delivery.
+
 ## Useless or redundant registers
 - Battery BMS SOC (214): duplicate of Battery SOC (588), at least in lithium mode
 - Battery BMS Current (216): no decimal places

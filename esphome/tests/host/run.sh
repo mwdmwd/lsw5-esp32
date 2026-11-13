@@ -23,3 +23,4 @@ done
 "$build/host-tests"
 node "$here/test_modbus_console.cjs"
 node "$here/test_memory_console.cjs"
+python3 "$here/test_energy_accounting.py"
