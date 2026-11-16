@@ -3,7 +3,7 @@
 
 ## High-resolution PV/GEN counters
 
-The modded DSP 1175 firmware supplies PV/GEN counters in 0.1 Wh units. The example YAML uses them when enabled, otherwise the stock 0.1 kWh counters.
+The [DSP 1175 firmware patch](firmware-patches/README.md) supplies PV/GEN counters in 0.1 Wh units. The example YAML uses them when enabled, otherwise the stock 0.1 kWh counters.
 
 | Register | Meaning |
 | --- | --- |
